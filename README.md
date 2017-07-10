@@ -2,6 +2,17 @@
 <p align="center"><b>Advanced Duplicate File Finder for Python.</b> <i>Nothing is impossible to solve.</i></p>
 
 
+Table of contents
+-----------------
+
+- [Status](#status)
+- [Description](#description)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [API Reference](#api-reference)
+
+
 Status
 ------
 
@@ -21,6 +32,29 @@ Description
 
 Use **deplicate** to find out all the duplicated files in one or more
 directories, you can also scan a bunch of files directly.
+
+**deplicate** is written in Pure Python and requires just a couple
+of dependencies to work fine, depending on your system.
+
+
+Features
+--------
+
+- [x] Optimized for speed
+- [x] N-tree usage for low memory consumation
+- [x] Multi-threaded (partially)
+- [x] Raw drive data access to maximize I/O performances
+- [x] xxHash algorithm for fast file identification
+- [x] File size and signature checking for quick file exclusion
+- [x] Extended file attributes scanning
+- [x] Multi-filtering
+- [x] Error handling
+- [x] Unicode decoding
+- [-] SSD detection
+- [ ] Multi-processing
+- [ ] Fully documented
+- [ ] PyPy support
+- [ ] ~~Exif data scanning~~
 
 
 Installation
