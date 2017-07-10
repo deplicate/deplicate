@@ -1,8 +1,6 @@
 deplicate
 =========
 
-Advanced Duplicate File Finder for Python.
-
 Installation
 ------------
 

@@ -1,6 +1,7 @@
 <p align="center"><a href="#"><img src="banner.png" alt="deplicate" /></a></p>
 
 Advanced Duplicate File Finder for Python.
+Nothing is impossible to solve.
 
 
 Installation
