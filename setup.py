@@ -17,7 +17,6 @@ setup(
     license='MIT',
     classifiers=[
         'Development Status :: 3 - Alpha',
-        'Environment :: Console',
         'Intended Audience :: Developers',
         'Intended Audience :: End Users/Desktop',
         'License :: OSI Approved :: MIT License',
@@ -40,9 +39,11 @@ setup(
     packages=['duplicate'],
     include_package_data=True,
     install_requires=[
+        'psutil;os_name!="nt"',
         'pyobjc;sys_platform=="darwin"',
         'pypiwin32>=154;os_name=="nt"',
         'scandir;python_version<"3.5"',
+        'wmi;os_name=="nt"',
         'xxhash>=1'],
     extras_require={
         'full': ['directio;os_name!="nt"']},

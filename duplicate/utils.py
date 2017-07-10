@@ -8,8 +8,8 @@ import sys
 
 import xxhash
 
-from base64 import standard_b64encode
-from os import lstat
+from os import lstat, statvfs
+from os.path import isdir, isfile, islink, ismount, splitdrive
 from random import randint
 from time import sleep
 
@@ -22,6 +22,18 @@ try:
     from os import scandir
 except ImportError:
     from scandir import scandir
+
+
+_NT_WILDCARDS = (
+    'Thumbs.db', 'ehthumbs.db', 'ehthumbs_vista.db', '*.stackdump',
+    'Desktop.ini', '$RECYCLE.BIN/', '*.lnk')
+_OSX_WILDCARDS = (
+    '*.DS_Store', '.AppleDouble', '.LSOverride', 'Icon', '._*',
+    '.DocumentRevisions-V100', '.fseventsd', '.Spotlight-V100',
+    '.TemporaryItems', '.Trashes', '.VolumeIcon.icns',
+    '.com.apple.timemachine.donotpresent', '.AppleDB', '.AppleDesktop',
+    'Network Trash Folder', 'Temporary Items', '.apdisk')
+_POSIX_WILDCARDS = ('*~', '.fuse_hidden*', '.directory', '.Trash-*', '.nfs*')
 
 
 def append_to_dict(root, key, value):
@@ -241,21 +253,11 @@ def _has_nt_system_attribute(filename):
 
 def _get_system_wildcards():
     if os.name == 'nt':
-        wildcards = (
-            'Thumbs.db', 'ehthumbs.db', 'ehthumbs_vista.db', '*.stackdump',
-            'Desktop.ini', '$RECYCLE.BIN/', '*.lnk')
-
+        wildcards = _NT_WILDCARDS
     elif sys.platform == 'darwin':
-        wildcards = (
-            '*.DS_Store', '.AppleDouble', '.LSOverride', 'Icon', '._*',
-            '.DocumentRevisions-V100', '.fseventsd', '.Spotlight-V100',
-            '.TemporaryItems', '.Trashes', '.VolumeIcon.icns',
-            '.com.apple.timemachine.donotpresent', '.AppleDB', '.AppleDesktop',
-            'Network Trash Folder', 'Temporary Items', '.apdisk')
-
+        wildcards = _OSX_WILDCARDS
     else:
-        wildcards = (
-            '*~', '.fuse_hidden*', '.directory', '.Trash-*', '.nfs*')
+        wildcards = _POSIX_WILDCARDS
 
     return wildcards
 
@@ -287,17 +289,107 @@ def _nt_blksize(path):
     return size
 
 
+def mountpoint(path):
+    dirname = os.path.dirname
+
+    path = fullpath(dirname(path))
+    while not ismount(path):
+        path = dirname(path)
+
+    return path
+
+
+def blkname(path):
+    import psutil
+
+    partitions = psutil.disk_partitions()
+    mount = mountpoint(path)
+
+    device = next(dp.device for dp in partitions if dp.mountpoin == mount)
+    block = device.rsplit('/', 1)[-1]
+
+    return block
+
+
 def blksize(path):
     """
     Get optimal file system buffer size (in bytes) for I/O calls.
     """
     try:
-        size = os.statvfs(path).f_bsize
+        size = statvfs(path).f_bsize
 
     except AttributeError:
         size = _nt_blksize(path)
 
     return size
+
+
+def _is_nt_ssd(path):
+    import win32file
+
+    flag = False
+
+    drive = splitdrive(path).upper()
+    drivetype = win32file.GetDriveType(drive)
+
+    if drivetype == win32file.DRIVE_RAMDISK:
+        flag = True
+
+    elif drivetype in (win32file.DRIVE_FIXED, win32file.DRIVE_REMOVABLE):
+        import wmi
+
+        c = wmi.WMI()
+        phy_to_part = "Win32_DiskDriveToDiskPartition"
+        log_to_part = "Win32_LogicalDiskToPartition"
+        index = dict((log_disk.Caption, phy_disk.Index)
+                     for phy_disk in c.Win32_DiskDrive()
+                     for partition in phy_disk.associators(phy_to_part)
+                     for log_disk in partition.associators(log_to_part))
+
+        c = wmi.WMI(moniker="//./ROOT/Microsoft/Windows/Storage")
+        flag = bool(
+            c.MSFT_PhysicalDisk(DeviceId=str(index[drive]), MediaType=4))
+
+    return flag
+
+
+def _is_osx_ssd(path):
+    import subprocess
+
+    block = blkname(path)
+    cmd = 'diskutil info {0} | grep "Solid State"'.format(block)
+    try:
+        out = subprocess.check_output(cmd)
+        flag = 'y' in out.lower()
+
+    except subprocess.CalledProcessError:
+        flag = False
+
+    return flag
+
+
+def _is_posix_ssd(path)
+    block = blkname(path)
+    path = '/sys/block/{0}/queue/rotational'.format(block)
+    try:
+        with open(path) as fp:
+            flag = bool(fp.read().strip())
+
+    except IOError:
+        flag = False
+
+    return flag
+
+
+def is_ssd(path):
+    if os.name == 'nt':
+        _is_ssd = _is_nt_ssd
+    elif sys.platform == 'darwin':
+        _is_ssd = _is_osx_ssd
+    else:
+        _is_ssd = _is_posix_ssd
+
+    return _is_ssd(path)
 
 
 def is_os_64bit():
