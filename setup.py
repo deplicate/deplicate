@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name='deplicate',
-    version=open('VERSION').read(),
+    version=open('VERSION').read().strip(),
     description='Advanced Duplicate File Finder for Python',
     long_description=open('README.rst').read(),
     keywords='duplicates dups',
