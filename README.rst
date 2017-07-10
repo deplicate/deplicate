@@ -26,8 +26,8 @@ You can install just the main package typing:
 
     pip install deplicate
 
-If the above commands fail, consider installing with the option
-`-user`_:
+If the above commands fail, consider installing it with the option
+`--user`_:
 
 ::
 
@@ -36,7 +36,18 @@ If the above commands fail, consider installing with the option
 Usage
 -----
 
-*TODO*
+Use **deplicate** to find out all the duplicated files in one or more
+directories, you can also scan for duplicates a bunch of files directly.
+
+To find the duplicates import in your python script the new available
+module ``duplicate`` and call its method ``find``:
+
+::
+
+    import duplicate
+
+    entries = ['/path/to/directory1', '/path/to/directory2', '/path/to/file1']
+    duplicate.find(entries)
 
 Examples
 --------
@@ -46,11 +57,34 @@ Examples
 API Reference
 -------------
 
-*TODO*
+-  duplicate.\ **find**\ (
+      ``paths, minsize=None, include=None, exclude=None,``
+      ``comparename=False, comparemtime=False,compareperms=False,``
+      ``recursive=False, followlinks=False, scanlinks=False,``
+      ``scanempties=False, scansystems=True, scanarchived=True,``
+      ``scanhidden=True, signsize=None``)
+-  **Return**: List of lists of duplicate files.
+-  **Parameters**:
 
---------------
+   -  ``paths`` -- Iterable of directory or file path.
+   -  ``minsize`` -- *(optional)* Minimum size of files to include in
+      scanning (default to ``DEFAULT_MINSIZE``).
+   -  ``include`` -- *(optional)* Wildcard pattern of files to include in
+      scanning.
+   -  ``exclude`` -- *(optional)* Wildcard pattern of files to exclude
+      from scanning.
+   -  ``comparename`` -- *(optional)* Check file name.
+   -  ``comparemtime`` -- *(optional)* Check file modification time.
+   -  ``compareperms`` -- *(optional)* Check file mode (permissions).
+   -  ``recursive`` -- *(optional)* Scan directory recursively.
+   -  ``followlinks`` -- *(optional)* Follow symbolic links pointing to
+      directory.
+   -  ``scanlinks`` -- *(optional)* Scan symbolic links pointing to file.
+   -  ``scanempties`` -- *(optional)* Scan empty files.
+   -  ``scansystems`` -- *(optional)* Scan OS files.
+   -  ``scanarchived`` -- *(optional)* Scan archived files.
+   -  ``scanhidden`` -- *(optional)* Scan hidden files.
+   -  ``signsize`` -- *(optional)* Size of bytes to read from file as
+      signature (default to ``DEFAULT_SIGNSIZE``).
 
-Copyright 2017 Walter Purcaro vuolter@gmail.com
-
-
-.. _-user: https://pip.pypa.io/en/latest/user_guide/#user-installs
+.. _--user: https://pip.pypa.io/en/latest/user_guide/#user-installs
