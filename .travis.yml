@@ -47,24 +47,24 @@ after_script:
   - tox -e pylint -- -E
 # after_success: ocular
 before_deploy: test $TRAVIS_TEST_RESULT -eq 0
-# deploy:
-  # - provider: pypi
-    # user:
-      # secure: ""
-    # password:
-      # secure: ""
-    # distributions: sdist bdist_wheel
-    # skip_cleanup: true
-    # skip_upload_docs: true
-    # on:
-      # python: 3.5
-      # tags: true
-  # - provider: releases
-    # api-key: "Xif4FGNCk0LGOMZSuleRwXoYblBWD9/tyTlZz/dJ6wVAF7y2sPVe5NmhDHHN/ky0fc34B7vRNNUUpp3gnwMIq3zkUtM5k3TKZZjoR+5NJmSrHThuaV9DLgNdCBNBlzvuXCyuGzT/iKdaU3LPngUaz56rS6ODEB9HN/MZYB0G6ZTGT/ywAhsLHvGZgIUfYgavI3NCB740DdAPRMiiJEIRPlPO4O1ZJa5KCQVvpE2Pu4Bn+aBzFlf/Gah+MClcqyCxL8sYr076CmKxPdn04dwH6oq2sj+LshUNw7jljde0L9WxY/dQjARhIx3kuiZzENtJ97tNxDAW++kjZ/6JkVbXVkszkawQbpbSrar+ZqD+RokP1DOb0+WUtF6AEEg6xVK9roeI/bwCkjYS1R1V0X+IcBw7yuC+5b2NUFEGclAvrTZEmiwd+qlHPoQ/M/mzfGY1tWnedx8vBTH+vId5U9K7WkM+AR0oZzYNHRoSl0UZlD0Atb4ZBEHKjZbe5vp8hW2lAskbsVlYzxDXh5MM3pNnIeXI7/VUL1BenfaQ1z/Zq0Owg8Gi64sYOmuO3UaZsJLYSYlypThgau4+H4BDfA3u2O2ZnW+6tTKPhiKBglMNaiMvdeFXtS62rOJW5au/69cGJPXB+9Ypxai08vmrG+piH2oxgPS+cyrvRR4PW4yfDAU="
-    # file_glob: true
-    # file: dist/*
-    # skip_cleanup: true
-    # on:
-      # python: 3.5
-      # tags: true
-# after_deploy: travis-bump-version --api-token "" --repo $TRAVIS_REPO_SLUG VERSION
+deploy:
+  - provider: pypi
+    user:
+      secure: "Q2ysZhMhFjhAtsZ+Ny+19VIx0M9Axax/uB7RmKKZOF0vguUroyadQjBsC8e9YkR4I+J4VDZQ5YacYpPsH/YfFdBveJ8I7Czgq1q9o92+ZB9m1KapDWAS2y6sOndvWdLxFkazedf/4QqsY+TkyDgZ2fmpRfmw0qi10z8+VCuqDErJwWUHIvOmG9CWP8Ds50iBvFjQbW+6XGgTWigDr2sjIL4thtYdar7iFllQ6TS9JASXMMSGInHma9Za2uKipkQDpiaVlueJTGbmjhmx+Mnbk2Nu5zgBT5k6puwUpRX5nL8icU9vim6XMfjXqI0Bg3aXYZ6wkevUJaGbeD97YWOnOe2KAklKF8Hvt5+TDpihND31RE1uLu0mMxSegIbEmTapG9QT91rNKHWkFjadz2NClO7vwTf7S0N7kNbwhEPshCvrESH1aiol3bSRFXVOoD3lI6hZ6gVQHOVVFPobeJFAtvTn4GarNFmTYzI0jxTaPO6m3ij1wWabrShPAzzPjkJ+U/3qC+kHI+dZAENz4gDP2jr4teFIPq/D75zVK5X6SdCEgq7Ti+5FHyxAJU9JDHXZRATGVdXI1s4i2Nb6Egjatj8aw8UxJGyoH2T48YHSINlGchMnOzwE3RZ6pcsUrwrz3nD+6tuvV/WCpZ4192G9a/dptKOI3m4kusGa1Ejfa+I="
+    password:
+      secure: "yYhtBCC6EmVlCAG3nU2uOmtGz1Vr+gU807nAnv5HjIOFEZe1U2LQ3iWEJjupZWxli2k/Xae3CSi/Q7jAuqLDcFhJTZEO5Z/dCXiMDS/nO98FcKCvWm5qTVQsNa9HpZ+DxhJoguorI2XNjHCNNAm2xXpYGt8UWDs097k6vMEEmEK7Dk9gtwo6alVPgtsG5NX4pb0+w1vFLcfLAkSKhEshe4lcI0sTNwNqTwORmCMZ4BHotaUWwf1bJi3UYkXtfIlT35/dNZYGDVWruljIFWI+dMkEJ5q8r+W/khiB03nSa3xQYx35V+KmEIpX7gX7zxk15XtOfwVYqymAM+YhCHBG9GRJIPwelbGPyDb0C74xDv5VKXbtLKw/baynO20xGnQkiV+Tv7M6lizleDWBYXzruIDFk6nFir4U4CydLEoAcfUgR0kgvSgaPT9TwulgrH46jTvIXCdCwe6PMRHI7uWT4o1q+MZ10lkkiPPJNznx2IH1S9BMHPQR5gw8Q3bGVcsOHp2vvviK4pM7nCC+qYxDXECKIl8bKUmp/Y4r+n4DiYhJtxdMgBqNcbEVsh746bO1rLLdz5RPxw4F0z0IDwO/PAfH6M4cjtC8ta4tkjQWq9yNAmGsGicDJN8FEUC3+jyNiKDDDqvRlz6sKxIlZ7LGc1ZMFeHSf0/bBHMh/96opRI="
+    distributions: sdist bdist_wheel
+    skip_cleanup: true
+    skip_upload_docs: true
+    on:
+      python: 3.5
+      tags: true
+  - provider: releases
+    api-key: "BI72sJw+rfJv5c0oWio5b6E0tPie2XnqgjSQJvLP6LAbePdg365sW1DU6Ly3UZz9rK0N/sjPSYX/z8K++IjmnZazIYPShj+t5z3AFhvjmWuIYK9N16u0nGh4IYwGkvRYXLPwjVGUe2P97QuatZfoG7iDYkn9xfvwPQVP63x0N0HNjj3o1p1r1SMhcW4MyrLUygAl/dlVNhNuTKSue2GTitfBimvgxUuQVjiTpVmGNXgKjl9wH0coxW+XaoG+QLpj7SpegLTEAddJcPm3qoTzA8fJui7S2t1/aOJEMba7+ZIIMd7xW6XHD75ab62ixDAd9mg2nvnqcuqNq9BueImxg9EKXUK+86KDwqrjv5ry9QVOjhGMxMnFVTF0iSDMi/ZQ9K0YWaZWKReSLDcjMkkkQPp5ul8TLTz1+fYElmfqshMZzuuyTCOjwJKKgtGIjABusLVNFqAd7SxDXG1WfL/j/ssAqn0sgrW5NPFJxUXPpQaYgVB24aZOAdZ/qiTH1F41ZmyRUETrBRfUXEI3PDf0krBotG8ALVgdlmleYSLZkUbAKcE/uADuwvwA1T0Vv7hfVaAqc8n768Rar7+HWq0C8Pz5nEDochzLRnLOBDIivZUDBQTmkLGA/sE4jBRXQwAWAsMADlpvphHOajzrw1ZYxbkgLaE578cye8M0HoS0TD8="
+    file_glob: true
+    file: dist/*
+    skip_cleanup: true
+    on:
+      python: 3.5
+      tags: true
+after_deploy: travis-bump-version --api-token "BI72sJw+rfJv5c0oWio5b6E0tPie2XnqgjSQJvLP6LAbePdg365sW1DU6Ly3UZz9rK0N/sjPSYX/z8K++IjmnZazIYPShj+t5z3AFhvjmWuIYK9N16u0nGh4IYwGkvRYXLPwjVGUe2P97QuatZfoG7iDYkn9xfvwPQVP63x0N0HNjj3o1p1r1SMhcW4MyrLUygAl/dlVNhNuTKSue2GTitfBimvgxUuQVjiTpVmGNXgKjl9wH0coxW+XaoG+QLpj7SpegLTEAddJcPm3qoTzA8fJui7S2t1/aOJEMba7+ZIIMd7xW6XHD75ab62ixDAd9mg2nvnqcuqNq9BueImxg9EKXUK+86KDwqrjv5ry9QVOjhGMxMnFVTF0iSDMi/ZQ9K0YWaZWKReSLDcjMkkkQPp5ul8TLTz1+fYElmfqshMZzuuyTCOjwJKKgtGIjABusLVNFqAd7SxDXG1WfL/j/ssAqn0sgrW5NPFJxUXPpQaYgVB24aZOAdZ/qiTH1F41ZmyRUETrBRfUXEI3PDf0krBotG8ALVgdlmleYSLZkUbAKcE/uADuwvwA1T0Vv7hfVaAqc8n768Rar7+HWq0C8Pz5nEDochzLRnLOBDIivZUDBQTmkLGA/sE4jBRXQwAWAsMADlpvphHOajzrw1ZYxbkgLaE578cye8M0HoS0TD8=" --repo $TRAVIS_REPO_SLUG VERSION
