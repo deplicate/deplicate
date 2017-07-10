@@ -1,5 +1,4 @@
-deplicate
-=========
+<p align="center"><img src="logo.png" alt="deplicate" /></p>
 
 Advanced Duplicate File Finder for Python.
 
