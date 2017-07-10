@@ -52,7 +52,7 @@ API Reference
 
 --------------
 
-© 2017 Walter Purcaro vuolter@gmail.com
+Copyright 2017 Walter Purcaro vuolter@gmail.com
 
 
 .. _``--user``: https://pip.pypa.io/en/latest/user_guide/#user-installs
