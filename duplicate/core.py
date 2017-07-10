@@ -6,7 +6,6 @@ from contextlib import closing
 from filecmp import cmp
 from multiprocessing.pool import ThreadPool
 from operator import attrgetter
-from os.path import isdir, isfile, islink
 
 from .structs import File, SkipException
 from .utils import (append_to_dict, blksize, checksum, compilecards, fullpath,
