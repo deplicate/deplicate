@@ -29,7 +29,7 @@ You can install just the main package typing:
     pip install deplicate
 
 If the above commands fail, consider installing with the option
-```--user```_:
+`-user`_:
 
 ::
 
@@ -55,4 +55,4 @@ API Reference
 Copyright 2017 Walter Purcaro vuolter@gmail.com
 
 
-.. _``--user``: https://pip.pypa.io/en/latest/user_guide/#user-installs
+.. _-user: https://pip.pypa.io/en/latest/user_guide/#user-installs
