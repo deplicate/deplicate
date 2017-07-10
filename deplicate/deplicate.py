@@ -17,7 +17,7 @@ DEFAULT_HASHTYPE = 'sha1'
 DEFAULT_MINSIZE = 100 << 10  #: bytes
 DEFAULT_SIGNSIZE = 512  #: bytes
 
-MAX_BLKSIZES_LEN = 128  #: number of entries
+MAX_BLKSIZES_LEN = 128  #: number of cached entries
 
 _BLKSIZES = {}
 
