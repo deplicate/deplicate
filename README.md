@@ -16,6 +16,13 @@ Status
 [![PyPI License](https://img.shields.io/pypi/l/deplicate.svg)](https://pypi.python.org/pypi/deplicate)
 
 
+Description
+-----------
+
+Use **deplicate** to find out all the duplicated files in one or more
+directories, you can also scan a bunch of files directly.
+
+
 Installation
 ------------
 
@@ -44,9 +51,6 @@ If the above commands fail, consider installing it with the option
 Usage
 -----
 
-Use **deplicate** to find out all the duplicated files in one or more
-directories, you can also scan for duplicates a bunch of files directly.
-
 To find the duplicates, import in your python script
 the new available module `duplicate` and call its function `find`:
 
@@ -56,7 +60,8 @@ the new available module `duplicate` and call its function `find`:
 
     duplicate.find(entries, recursive=True)
 
-Sample result:
+Resulting output is a list of lists of file paths, where each list groups
+all the same files:
 
     [
         ['/path/to/dir1/file1', '/path/to/file1', '/path/to/dir2/subdir1/file1]',
@@ -64,7 +69,10 @@ Sample result:
     ]
 
 > **Note:**
-> Result lists are sorted in descending order by length.
+> Resulting file paths are the canonical path of the founded file names.
+
+> **Note:**
+> Resulting lists are sorted in descending order by length.
 
 
 API Reference
@@ -74,7 +82,7 @@ API Reference
     comparename=False, comparemtime=False, compareperms=False, recursive=False,
     followlinks=False, scanlinks=False, scanempties=False, scansystems=True,
     scanarchived=True, scanhidden=True, signsize=None`)
-  - **Return**: List of lists of duplicate files.
+  - **Return**: Nested lists of paths of duplicate files.
   - **Parameters**:
     - `paths` – Iterable of directory or file paths.
     - `minsize` – _(optional)_ Minimum size of files to include in scanning

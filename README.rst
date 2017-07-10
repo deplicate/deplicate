@@ -1,6 +1,13 @@
 deplicate
 =========
 
+Description
+-----------
+
+Use **deplicate** to find out all the duplicated files in one or more
+directories, you can also scan a bunch of files directly.
+
+
 Installation
 ------------
 
@@ -36,9 +43,6 @@ If the above commands fail, consider installing it with the option
 Usage
 -----
 
-Use **deplicate** to find out all the duplicated files in one or more
-directories, you can also scan for duplicates a bunch of files directly.
-
 To find the duplicates import in your python script the new available
 module ``duplicate`` and call its function ``find``:
 
@@ -50,7 +54,8 @@ module ``duplicate`` and call its function ``find``:
 
     duplicate.find(entries, recursive=True)
 
-Sample result:
+Resulting output is a list of lists of file paths, where each list groups
+all the same files:
 
 ::
 
@@ -59,7 +64,9 @@ Sample result:
         ['/path/to/dir2/file3', '/path/to/dir2/subdir1/file3']
     ]
 
-**Note:** Result lists are sorted in descending order by length.
+**Note:** Resulting file paths are the canonical path of the founded file names.
+
+**Note:** Resulting lists are sorted in descending order by length.
 
 API Reference
 -------------
@@ -70,7 +77,7 @@ API Reference
       ``recursive=False, followlinks=False, scanlinks=False,``
       ``scanempties=False, scansystems=True, scanarchived=True,``
       ``scanhidden=True, signsize=None``)
--  **Return**: List of lists of paths of duplicate files.
+-  **Return**: Nested lists of paths of duplicate files.
 -  **Parameters**:
 
    -  ``paths`` -- Iterable of directory or file paths.
