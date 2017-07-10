@@ -42,7 +42,8 @@ setup(
     install_requires=[
         'pyobjc;sys_platform=="darwin"',
         'pypiwin32>=154;os_name=="nt"',
-        'scandir;python_version<"3.5"'],
+        'scandir;python_version<"3.5"',
+        'xxhash>=1'],
     extras_require={
         'full': ['directio;os_name!="nt"']},
     python_requires='>=2.6,!=3.0,!=3.1,!=3.2',

@@ -10,5 +10,5 @@
 
 from __future__ import absolute_import
 
-from .core import (DEFAULT_HASHTYPE, DEFAULT_MINSIZE, DEFAULT_SIGNSIZE,
-                   MAX_BLKSIZES_LEN, find)
+from .core import (DEFAULT_MINSIZE, DEFAULT_SIGNSIZE, MAX_BLKSIZES_LEN,
+                   clear_blkcache, find)

@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 
 import fnmatch
-import hashlib
 import os
 import re
 import stat
 import sys
 
+import xxhash
+
 from base64 import standard_b64encode
 from os import lstat
+from random import randint
 from time import sleep
 
 try:
@@ -37,8 +39,25 @@ def fsdecode(path):
     try:
         upath = os.fsdecode(path)
     except AttributeError:
-        upath = str(path)
+        upath = unicode(path)
     return upath
+
+
+def splitpaths(iterable, followlinks=False):
+    dirs  = []
+    files = []
+    links = []
+
+    for name in iterable:
+        if isdir(name):
+            if not followlinks and islink(name):
+                continue
+            dirnames.append(name)
+
+        elif isfile(name):
+            (links if islink(name) else files).append(name)
+
+    return dirs, files, links
 
 
 def compilecards(wildcards):
@@ -51,14 +70,30 @@ def compilecards(wildcards):
     return re.compile(pattern, flags)
 
 
-def _scandir(path, followlinks):
-    dirs = []
+def _scandir(path, onerror, followlinks):
+    dirs  = []
     files = []
     links = []
 
-    scandir_it = scandir(path)
     try:
-        for entry in scandir_it:
+        scandir_it = scandir(path)
+    except OSError as error:
+        if onerror is not None:
+            onerror(error)
+        return
+
+    try:
+        while True:
+            try:
+                try:
+                    entry = next(scandir_it)
+                except StopIteration:
+                    break
+            except OSError as error:
+                if onerror is not None:
+                    onerror(error)
+                continue
+
             if entry.is_dir(followlinks):
                 dirs.append(entry)
 
@@ -74,11 +109,11 @@ def _scandir(path, followlinks):
             pass
 
 
-def _walk(seen, path, followlinks):
+def _walk(seen, path, onerror, followlinks):
     if path in seen:
         return
 
-    dirs, files, links = _scandir(path, followlinks)
+    dirs, files, links = _scandir(path, onerror, followlinks)
     yield files, links
 
     seen.add(path)
@@ -94,10 +129,10 @@ def _walk(seen, path, followlinks):
             yield files, links
 
 
-def walk(dirname, followlinks=False):
+def walk(dirname, onerror=None, followlinks=False):
     seen = set()
     path = fullpath(dirname)
-    return _walk(seen, path, followlinks)
+    return _walk(seen, path, onerror, followlinks)
 
 
 def _has_posix_hidden_attribute(filename):
@@ -265,19 +300,38 @@ def blksize(path):
     return size
 
 
+def is_os_64bit():
+    if os.name == 'nt':
+        if 'PROCESSOR_ARCHITEW6432' in os.environ:
+            flag = True
+        else:
+            flag = os.environ['PROCESSOR_ARCHITECTURE'].endswith('64')
+    else:
+        flag = platform.machine().endswith('64')
+
+    return flag
+
+
+_xxhash_xxh = xxhash.xxh64() if is_os_64bit else xxhash.xxh32()
+_xxhash_seed = randint(0, 2 ** 64 if is_os_64bit else 2 ** 32)
+
+
 def signature(filename, size=None):
     buf = (size or min(lstat(filename).st_size, 512)) // 2
+
     with open(filename, mode='rb') as fp:
         header = fp.read(buf)
         fp.seek(-buf, os.SEEK_END)
         footer = fp.read()
-    return standard_b64encode(header), standard_b64encode(footer)
+
+    return (_xxhash_xxh(header, seed=_xxhash_seed),
+            _xxhash_xxh(footer, seed=_xxhash_seed))
 
 
-def checksum(filename, hashtype, bufsize=None):
-    h = hashlib.new(hashtype)
+def checksum(filename, bufsize=None):
+    x = _xxhash_xxh(seed=_xxhash_seed)
 
-    hbuf = h.block_size << 10
+    hbuf = x.block_size << 10
     fsbuf = bufsize or blksize(filename)
     buf = fsbuf if fsbuf > hbuf else hbuf - hbuf % fsbuf
 
@@ -294,14 +348,14 @@ def checksum(filename, hashtype, bufsize=None):
         read = os.read
 
     fd = os.open(filename, flags)
-    update = h.update
+    update = x.update
     try:
         data = read(fd, buf)
         while data:
             update(data)
             data = read(fd, buf)
 
-        return h.hexdigest()
+        return x.hexdigest()
 
     finally:
         os.close(fd)

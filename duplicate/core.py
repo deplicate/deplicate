@@ -10,16 +10,21 @@ from os.path import isdir, isfile, islink
 
 from .structs import File, SkipException
 from .utils import (append_to_dict, blksize, checksum, compilecards, fullpath,
-                    fsdecode, signature, _walk)
+                    fsdecode, signature, splitpaths, _walk)
 
 
-DEFAULT_HASHTYPE = 'sha1'
 DEFAULT_MINSIZE = 100 << 10  #: bytes
 DEFAULT_SIGNSIZE = 512  #: bytes
-
 MAX_BLKSIZES_LEN = 128  #: number of cached entries
 
-_BLKSIZES = {}
+_blksizes = {}
+
+
+def clear_blkcache():
+    """
+    Clear the blksizes cache.
+    """
+    _blksizes.clear()
 
 
 def _filterdups(root):
@@ -40,20 +45,26 @@ def _iterleaves(root):
             yield root, key, value
 
 
-def _hashfilter(dupdict, hashtype):
+def _hashfilter(dupdict, errlist):
     for root, key, files in _iterleaves(dupdict):
         newfiles = {}
 
         for file in files:
-            bufsize = _BLKSIZES.setdefault(file.dev, blksize(file.path))
-            hash = checksum(file.path, hashtype, bufsize)
-
-            append_to_dict(newfiles, hash, file)
+            try:
+                bufsize = _blksizes.setdefault(file.dev, blksize(file.path))
+            except Exception:
+                bufsize = 1
+            try:
+                hash = checksum(file.path, bufsize)
+            except Exception:
+                errlist.append(file)
+            else:
+                append_to_dict(newfiles, hash, file)
 
         root[key] = _filterdups(newfiles)
 
 
-def _dupfilter(dupdict, signsize, hashtype):
+def _dupfilter(dupdict, errlist, signsize):
     for root, key, files in _iterleaves(dupdict):
         _size = files[0].size
         if not _size:
@@ -63,8 +74,12 @@ def _dupfilter(dupdict, signsize, hashtype):
 
         signsize = min(_size, signsize)
         for file in files:
-            sign = signature(file.path, signsize)
-            append_to_dict(newfiles, sign, file)
+            try:
+                sign = signature(file.path, signsize)
+            except Exception:
+                errlist.append(file)
+            else:
+                append_to_dict(newfiles, sign, file)
 
         root[key] = _filterdups(newfiles)
 
@@ -73,10 +88,10 @@ def _dupfilter(dupdict, signsize, hashtype):
                 if not cmp(*newfiles, shallow=False):
                     newfiles.pop(key)
             else:
-                _hashfilter(newfiles, hashtype)
+                _hashfilter(newfiles, errlist)
 
-    if len(_BLKSIZES) > MAX_BLKSIZES_LEN:
-        _BLKSIZES.clear()
+    if len(_blksizes) > MAX_BLKSIZES_LEN:
+        clear_blkcache()
 
 
 def _namefilter(dupdict):
@@ -143,27 +158,14 @@ def _filecheck(file, minsize, included_match, excluded_match,
         raise SkipException
 
 
-def _splitpaths(paths, followlinks):
+def _filterpaths(paths, followlinks):
     with closing(ThreadPool()) as pool:
         upaths = pool.map(fsdecode, paths)
 
-    dirnames = []
-    filenames = []
-    linknames = []
-
-    for upath in set(upaths):
-        if isdir(upath):
-            if not followlinks and islink(upath):
-                continue
-            dirnames.append(upath)
-
-        elif isfile(upath):
-            (linknames if islink(upath) else filenames).append(upath)
-
-    return dirnames, filenames, linknames
+    return splitpaths(set(upaths), followlinks)
 
 
-def _parsedups(paths, minsize, include, exclude, recursive, followlinks,
+def _filterdups(paths, minsize, include, exclude, recursive, followlinks,
                scanlinks, scanempties, scansystems, scanarchived, scanhidden):
     dupdict = {}
 
@@ -182,7 +184,7 @@ def _parsedups(paths, minsize, include, exclude, recursive, followlinks,
     args = (minsize, included_match, excluded_match, scanempties, scansystems,
             scanarchived, scanhidden)
 
-    dirnames, filenames, linknames = _splitpaths(paths, followlinks)
+    dirnames, filenames, linknames = _filterpaths(paths, followlinks)
 
     if scanlinks:
         filenames += linknames
@@ -198,11 +200,16 @@ def _parsedups(paths, minsize, include, exclude, recursive, followlinks,
 
     if recursive:
         seen = set()
+        errnames = []
+
+        def onerror(exception):
+            errnames.append(exception.filename)
 
         for dirname in dirnames:
             dirpath = fullpath(dirname)
 
-            for files, links in _walk(seen, dirpath, followlinks):
+            walk_it = _walk(seen, dirpath, onerror, followlinks)
+            for files, links in walk_it:
                 if scanlinks:
                     files += links
 
@@ -216,7 +223,7 @@ def _parsedups(paths, minsize, include, exclude, recursive, followlinks,
                     id = (file.type, file.size)
                     append_to_dict(dupdict, id, file)
 
-    return _filterdups(dupdict)
+    return _filterdups(dupdict), splitpaths(errnames, followlinks)
 
 
 def _listdups(dupdict):
@@ -227,13 +234,18 @@ def _listdups(dupdict):
     return result
 
 
-def find(paths,
+def _listerrors(errlist):
+    with closing(ThreadPool()) as pool:
+        return list(pool.map(attrgetter('path'), errlist))
+
+
+def _find(paths,
          minsize=None, include=None, exclude=None,
          comparename=False, comparemtime=False, compareperms=False,
          recursive=False, followlinks=False,
          scanlinks=False, scanempties=False,
          scansystems=True, scanarchived=True, scanhidden=True,
-         signsize=None, hashtype=None):
+         signsize=None):
 
     if minsize is None:
         minsize = DEFAULT_MINSIZE
@@ -241,10 +253,8 @@ def find(paths,
     if signsize is None:
         signsize = DEFAULT_SIGNSIZE
 
-    if hashtype is None:
-        hashtype = DEFAULT_HASHTYPE
-
-    dupdict = _parsedups(
+    errlist = []
+    dupdict, unscntuple = _filterdups(
         paths, minsize, include, exclude, recursive, followlinks,
         scanlinks, scanempties, scansystems, scanarchived, scanhidden)
 
@@ -257,9 +267,14 @@ def find(paths,
     if comparename:
         _namefilter(dupdict)
 
-    _dupfilter(dupdict, signsize, hashtype)
+    _dupfilter(dupdict, errlist, signsize)
 
-    return _listdups(dupdict)
+    return dupdict, errlist, unscntuple
+
+
+def find(*args, **kwargs):
+    dupdict, errlist, unscntuple = _fins(*args, **kwargs)
+    return _listdups(dupdict), _listerrors(errlist)
 
 
 # def fixup():
