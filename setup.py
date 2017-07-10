@@ -6,7 +6,8 @@ from setuptools import setup
 setup(
     name='deplicate',
     version=open('VERSION').read().strip(),
-    description='Advanced Duplicate File Finder for Python',
+    description='Advanced Duplicate File Finder for Python. '
+                'Nothing is impossible to solve.',
     long_description=open('README.rst').read(),
     keywords='duplicates dups',
     url='https://github.com/vuolter/deplicate',
@@ -36,16 +37,13 @@ setup(
         'Topic :: System :: Filesystems',
         'Topic :: Utilities'],
     platforms=['any'],
-    packages=['deplicate'],
+    packages=['duplicate'],
     include_package_data=True,
     install_requires=[
-        'click>=4.0',
         'pyobjc;sys_platform=="darwin"',
         'pypiwin32>=154;os_name=="nt"',
         'scandir;python_version<"3.5"'],
     extras_require={
-        'full': ['colorama;os_name=="nt"', 'directio;os_name!="nt"']},
+        'full': ['directio;os_name!="nt"']},
     python_requires='>=2.6,!=3.0,!=3.1,!=3.2',
-    zip_safe=True,
-    entry_points={
-        'console_scripts': ['deplicate=deplicate.cli:main']})
+    zip_safe=True)

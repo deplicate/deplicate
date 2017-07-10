@@ -227,13 +227,13 @@ def _listdups(dupdict):
     return result
 
 
-def deplicate(paths,
-              minsize=None, include=None, exclude=None,
-              comparename=False, comparemtime=False, compareperms=False,
-              recursive=False, followlinks=False,
-              scanlinks=False, scanempties=False,
-              scansystems=True, scanarchived=True, scanhidden=True,
-              signsize=None, hashtype=None):
+def find(paths,
+         minsize=None, include=None, exclude=None,
+         comparename=False, comparemtime=False, compareperms=False,
+         recursive=False, followlinks=False,
+         scanlinks=False, scanempties=False,
+         scansystems=True, scanarchived=True, scanhidden=True,
+         signsize=None, hashtype=None):
 
     if minsize is None:
         minsize = DEFAULT_MINSIZE
