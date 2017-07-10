@@ -40,19 +40,26 @@ Use **deplicate** to find out all the duplicated files in one or more
 directories, you can also scan for duplicates a bunch of files directly.
 
 To find the duplicates import in your python script the new available
-module ``duplicate`` and call its method ``find``:
+module ``duplicate`` and call its function ``find``:
 
 ::
 
     import duplicate
 
     entries = ['/path/to/directory1', '/path/to/directory2', '/path/to/file1']
-    duplicate.find(entries)
 
-Examples
---------
+    duplicate.find(entries, recursive=True)
 
-*TODO*
+Sample result:
+
+::
+
+    [
+        ['/path/to/dir1/file1', '/path/to/file1', '/path/to/dir2/subdir1/file1]',
+        ['/path/to/dir2/file3', '/path/to/dir2/subdir1/file3']
+    ]
+
+**Note:** Result lists are sorted in descending order by length.
 
 API Reference
 -------------
@@ -63,10 +70,10 @@ API Reference
       ``recursive=False, followlinks=False, scanlinks=False,``
       ``scanempties=False, scansystems=True, scanarchived=True,``
       ``scanhidden=True, signsize=None``)
--  **Return**: List of lists of duplicate files.
+-  **Return**: List of lists of paths of duplicate files.
 -  **Parameters**:
 
-   -  ``paths`` -- Iterable of directory or file path.
+   -  ``paths`` -- Iterable of directory or file paths.
    -  ``minsize`` -- *(optional)* Minimum size of files to include in
       scanning (default to ``DEFAULT_MINSIZE``).
    -  ``include`` -- *(optional)* Wildcard pattern of files to include in

@@ -1,7 +1,19 @@
 <p align="center"><a href="#"><img src="banner.png" alt="deplicate" /></a></p>
+<p align="center"><b>Advanced Duplicate File Finder for Python.</b> <i>Nothing is impossible to solve.</i></p>
 
-Advanced Duplicate File Finder for Python.
-Nothing is impossible to solve.
+
+Status
+------
+
+[![Travis Build Status](https://travis-ci.org/vuolter/deplicate.svg?branch=master)](https://travis-ci.org/vuolter/deplicate)
+[![Requirements Status](https://requires.io/github/vuolter/deplicate/requirements.svg?branch=master)](https://requires.io/github/vuolter/deplicate/requirements/?branch=master)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/bc7b97415617404694a07f2529147f7e)](https://www.codacy.com/app/deplicate/deplicate?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=vuolter/deplicate&amp;utm_campaign=Badge_Grade)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/vuolter/deplicate/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/vuolter/deplicate/?branch=master)
+
+[![PyPI Status](https://img.shields.io/pypi/status/deplicate.svg)](https://pypi.python.org/pypi/deplicate)
+[![PyPI Version](https://img.shields.io/pypi/v/deplicate.svg)](https://pypi.python.org/pypi/deplicate)
+[![PyPI Python Versions](https://img.shields.io/pypi/pyversions/deplicate.svg)](https://pypi.python.org/pypi/deplicate)
+[![PyPI License](https://img.shields.io/pypi/l/deplicate.svg)](https://pypi.python.org/pypi/deplicate)
 
 
 Installation
@@ -35,31 +47,36 @@ Usage
 Use **deplicate** to find out all the duplicated files in one or more
 directories, you can also scan for duplicates a bunch of files directly.
 
-To find the duplicates import in your python script
-the new available module `duplicate` and call its method `find`:
+To find the duplicates, import in your python script
+the new available module `duplicate` and call its function `find`:
 
     import duplicate
 
-    entries = ['/path/to/directory1', '/path/to/directory2', '/path/to/file1']
-    duplicate.find(entries)
+    entries = ['/path/to/dir1', '/path/to/dir2', '/path/to/file1']
 
+    duplicate.find(entries, recursive=True)
 
-Examples
---------
+Sample result:
 
-_TODO_
+    [
+        ['/path/to/dir1/file1', '/path/to/file1', '/path/to/dir2/subdir1/file1]',
+        ['/path/to/dir2/file3', '/path/to/dir2/subdir1/file3']
+    ]
+
+> **Note:**
+> Result lists are sorted in descending order by length.
 
 
 API Reference
 -------------
 
 - duplicate.**find**(`paths, minsize=None, include=None, exclude=None,
-  comparename=False, comparemtime=False, compareperms=False, recursive=False,
-  followlinks=False, scanlinks=False, scanempties=False, scansystems=True,
-  scanarchived=True, scanhidden=True, signsize=None`)
+    comparename=False, comparemtime=False, compareperms=False, recursive=False,
+    followlinks=False, scanlinks=False, scanempties=False, scansystems=True,
+    scanarchived=True, scanhidden=True, signsize=None`)
   - **Return**: List of lists of duplicate files.
   - **Parameters**:
-    - `paths` – Iterable of directory or file path.
+    - `paths` – Iterable of directory or file paths.
     - `minsize` – _(optional)_ Minimum size of files to include in scanning
       (default to `DEFAULT_MINSIZE`).
     - `include` – _(optional)_ Wildcard pattern of files to include in scanning.
