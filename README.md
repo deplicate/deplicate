@@ -127,7 +127,7 @@ Scan ignoring the minimum file size threshold:
 
     duplicate.find('/path/to/dir', minsize=0)
 
-Resulting output for will be always a list of lists of file paths,
+Resulting output will be always a list of lists of file paths,
 where each list collects together all the same files (aka. the duplicates):
 
     [
@@ -136,23 +136,23 @@ where each list collects together all the same files (aka. the duplicates):
     ]
 
 > **Note:**
-> Resulting file paths are returned in canonical form.
+> File paths are returned in canonical form.
 
 > **Note:**
-> Lists of resulting file paths are sorted in descending order by length.
+> Lists of file paths are sorted in descending order by length.
 
 ### Advanced Examples
 
-Scan single files (not-recursively):
+Scan single files, **not-recursively**:
 
     import duplicate
 
     duplicate.find('/path/to/file1', '/path/to/file2', '/path/to/dir1',
                    recursive=False)
 
-> **Notice:**
-> **In _not-recursive mode_, like the case above, directory paths are simply
-> ignored.**
+> **Note:**
+> In _not-recursive mode_, like the case above, directory paths are simply
+> ignored.
 
 Scan from iterable checking file names and hidden files:
 
@@ -203,7 +203,7 @@ API Reference
 - duplicate.**find**(`paths, minsize=None, include=None, exclude=None,
     comparename=False, comparemtime=False, compareperms=False, recursive=True,
     followlinks=False, scanlinks=False, scanempties=False, scansystems=True,
-    scanarchived=True, scanhidden=True, signsize=None`, onerror=None)
+    scanarchived=True, scanhidden=True, signsize=None, onerror=None`)
   - **Description**: Find duplicate files.
   - **Return**: Nested lists of paths of duplicate files.
   - **Parameters**:
