@@ -192,7 +192,7 @@ def _filehandler(filedups, errnames, filename, filepath, filestat, args,
         _filecheck(file, *args)
 
     except SkipException:
-        continue
+        pass
 
     except (IOError, OSError) as exc:
         path = file.path
