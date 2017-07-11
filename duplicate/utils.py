@@ -7,12 +7,11 @@ import re
 import stat
 import subprocess
 import sys
-
-import xxhash
-
 from os import lstat
 from os.path import isdir, isfile, islink, ismount, splitdrive
 from time import sleep
+
+import xxhash
 
 try:
     import directio

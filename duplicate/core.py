@@ -8,11 +8,10 @@ from multiprocessing.pool import ThreadPool
 from operator import attrgetter
 from os.path import exists
 
-from .structs import FileInfo, FileDups, DupType, SkipException
-from .utils import (blksize, checksum, compilecards, from_iterable, fullpath,
-                    fsdecode, is_archived, is_hidden, is_system, signature,
-                    splitpaths, _walk)
-
+from .structs import DupType, FileDups, FileInfo, SkipException
+from .utils import (_walk, blksize, checksum, compilecards, from_iterable,
+                    fsdecode, fullpath, is_archived, is_hidden, is_system,
+                    signature, splitpaths)
 
 DEFAULT_MINSIZE = 100 << 10  #: bytes
 DEFAULT_SIGNSIZE = 512  #: bytes
@@ -265,7 +264,8 @@ def _filterdups(paths, minsize, include, exclude, recursive, followlinks,
 def _listdups(filedups):
     with closing(ThreadPool()) as pool:
         dups = [sorted(pool.map(attrgetter('path'), dupfiles))
-                for dupdict, dupkey, dupfiles in _iterdups(filedups) if dupfiles]
+                for dupdict, dupkey, dupfiles in _iterdups(filedups)
+                if dupfiles]
     dups.sort(key=len, reverse=True)
     return dups
 
