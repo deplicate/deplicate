@@ -5,14 +5,12 @@ import os
 import platform
 import re
 import stat
-import subprocess
 import sys
 
 import xxhash
 
 from os import lstat
 from os.path import isdir, isfile, islink, ismount, splitdrive
-from random import randint
 from time import sleep
 
 try:
@@ -91,9 +89,10 @@ def _scandir(path, onerror, followlinks):
 
     try:
         scandir_it = scandir(path)
-    except OSError as error:
+
+    except OSError as exc:
         if onerror is not None:
-            onerror(error)
+            onerror(exc)
         return
 
     try:
@@ -103,10 +102,11 @@ def _scandir(path, onerror, followlinks):
                     entry = next(scandir_it)
                 except StopIteration:
                     break
-            except OSError as error:
+
+            except OSError as exc:
                 if onerror is not None:
-                    onerror(error)
-                continue
+                    onerror(exc)
+                return
 
             if entry.is_dir(followlinks):
                 dirs.append(entry)
@@ -301,11 +301,14 @@ def mountpoint(path):
     return path
 
 
-def blkname(path):
+def blkdevice(path):
     import psutil
 
     partitions = psutil.disk_partitions()
     mount = mountpoint(path)
+
+    if os.name == 'nt':
+        mount = mount.upper()
 
     device = next(dp.device for dp in partitions if dp.mountpoin == mount)
     block = device.rsplit('/', 1)[-1]
@@ -356,7 +359,9 @@ def _is_nt_ssd(path):
 
 
 def _is_osx_ssd(path):
-    block = blkname(path)
+    import subprocess
+
+    block = blkdevice(path)
     cmd = 'diskutil info {0} | grep "Solid State"'.format(block)
     try:
         out = subprocess.check_output(cmd)
@@ -369,7 +374,7 @@ def _is_osx_ssd(path):
 
 
 def _is_posix_ssd(path):
-    block = blkname(path)
+    block = blkdevice(path)
     path = '/sys/block/{0}/queue/rotational'.format(block)
     try:
         with open(path) as fp:
@@ -392,7 +397,7 @@ def is_ssd(path):
     return _is_ssd(path)
 
 
-def is_os_64bit():
+def is_os64():
     if os.name == 'nt':
         if 'PROCESSOR_ARCHITEW6432' in os.environ:
             flag = True
@@ -404,23 +409,22 @@ def is_os_64bit():
     return flag
 
 
-_xxhash_xxh = xxhash.xxh64 if is_os_64bit else xxhash.xxh32
-_xxhash_seed = randint(0, 2 ** 64 if is_os_64bit else 2 ** 32)
+_xxhash_xxh = xxhash.xxh64 if is_os64 else xxhash.xxh32
 
 
 def signature(filename, size=None):
     buf = (size or min(lstat(filename).st_size, 512)) // 2
 
     with open(filename, mode='rb') as fp:
-        header = _xxhash_xxh(fp.read(buf), seed=_xxhash_seed)
+        header = _xxhash_xxh(fp.read(buf))
         fp.seek(-buf, os.SEEK_END)
-        footer = _xxhash_xxh(fp.read(), seed=_xxhash_seed)
+        footer = _xxhash_xxh(fp.read())
 
     return header.hexdigest(), footer.hexdigest()
 
 
 def checksum(filename, bufsize=None):
-    x = _xxhash_xxh(seed=_xxhash_seed)
+    x = _xxhash_xxh()
 
     hbuf = x.block_size << 10
     fsbuf = bufsize or blksize(filename)

@@ -11,12 +11,12 @@ from stat import S_IFMT, S_IMODE
 from .utils import fullpath
 
 
-class GroupFilter(IntEnum):
+class DupType(IntEnum):
     Ident = 0
     Path = 1
     Name = 2
     Mode = 3
-    Type = 4
+    Ifmt = 4
     Dev = 5
     Mtime = 6
     Size = 7
@@ -24,44 +24,42 @@ class GroupFilter(IntEnum):
     Hash = 9
 
 
-class FileGroup(object):
+class FileDups(object):
 
-    __slots__ = ['id', 'type', 'dups', 'errors', 'add_to_errors']
+    __slots__ = ['type', 'group', 'errors', 'add_to_errors']
 
-    def __init__(self, filtertype):
-        self.id = id(self)
-        self.type = filtertype
-        self.dups = {}
+    def __init__(self, duptype):
+        self.type = duptype
+        self.group = {}
         self.errors = []
         self.add_to_errors = self.errors.append
 
-    def add_to_dups(self, id, file):
-        dups = self.dups
-        if id in dups:
-            dups[id].append(file)
+    def add_to_group(self, key, file):
+        dups = self.group
+        if key in dups:
+            dups[key].append(file)
         else:
-            dups[id] = [file]
+            dups[key] = [file]
 
     def _filter(self):
-        dupdict = self.dups
+        dupdict = self.group
         for key, value in dupdict.items():
-            if isinstance(value, FileGroup):
+            if isinstance(value, FileDups):
                 value._filter()
-                value = value.dups
+                value = value.group
             if len(value) < 2:
                 dupdict.pop(key)
 
     def filter(self, files=None):
-        if files:
-            for file in files:
-                self.add_to_dups(file[self.type], file)
+        for file in files or ():
+            self.add_to_group(file[self.type], file)
         self._filter()
 
     def __str__(self):
-        return """FileGroup(id={0}, type={1})""".format(self.id, self.type)
+        return """FileDups(id={0}, type={1})""".format(id(self), self.type)
 
 
-_FileInfo = namedtuple('FileInfo', 'ident path name mode type dev mtime size')
+_FileInfo = namedtuple('FileInfo', 'ident path name mode ifmt dev mtime size')
 
 
 class FileInfo(_FileInfo):
@@ -76,17 +74,17 @@ class FileInfo(_FileInfo):
 
         name = basename(name)
         mode = S_IMODE(st.st_mode)
-        type = S_IFMT(st.st_mode)
+        ifmt = S_IFMT(st.st_mode)
         dev = st.st_dev
         try:
             mtime = st.st_mtime_ns
         except AttributeError:
             mtime = st.st_mtime
         size = st.st_size
-        ident = (type, size)
+        ident = (ifmt, size)
 
         return super(FileInfo, cls).__new__(
-            cls, ident, path, name, mode, type, dev, mtime, size)
+            cls, ident, path, name, mode, ifmt, dev, mtime, size)
 
 
 class SkipException(Exception):

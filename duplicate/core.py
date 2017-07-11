@@ -6,8 +6,9 @@ from contextlib import closing
 from filecmp import cmp
 from multiprocessing.pool import ThreadPool
 from operator import attrgetter
+from os.path import exists
 
-from .structs import FileInfo, FileGroup, GroupFilter, SkipException
+from .structs import FileInfo, FileDups, DupType, SkipException
 from .utils import (blksize, checksum, compilecards, from_iterable, fullpath,
                     fsdecode, is_archived, is_hidden, is_system, signature,
                     splitpaths, _walk)
@@ -27,147 +28,136 @@ def clear_blkcache():
     _blksizes.clear()
 
 
-def _iterdups(filegrp):
-    for key, value in filegrp.dups.items():
-        if isinstance(value, FileGroup):
-            for subdups, subid, subvalue in _iterdups(value):
-                yield subdups, subid, subvalue
+def _iterdups(filedups):
+    for key, value in filedups.group.items():
+        if isinstance(value, FileDups):
+            for subgroup, subkey, subvalue in _iterdups(value):
+                yield subgroup, subkey, subvalue
         else:
-            yield filegrp.dups, key, value
+            yield filedups.group, key, value
 
 
-def _itererrors(filegrp):
-    yield filegrp.errors
+def _itererrors(filedups):
+    yield filedups.errors
 
-    for key, value in filegrp.dups.items():
-        if not isinstance(value, FileGroup):
+    for value in filedups.group.values():
+        if not isinstance(value, FileDups):
             continue
         for errlist in _itererrors(value):
             yield errlist
 
 
-def _cmpfilter(filegrp):
-    for dupdict, id, dupfiles in _iterdups(filegrp):
+def _binaryfilter(filedups, onerror):
+    for dupdict, dupkey, dupfiles in _iterdups(filedups):
 
-        new_filegrp = FileGroup(filtertype=GroupFilter.Hash)
+        new_filedups = FileDups(DupType.Hash)
 
         if len(dupfiles) == 2:
             try:
                 f0, f1 = dupfiles
                 if not cmp(f0.path, f1.path, shallow=False):
-                    dupdict.pop(id)
+                    dupdict.pop(dupkey)
 
             except IOError:
-                new_filegrp.errors = dupfiles
-                dupdict[id] = new_filegrp
+                new_filedups.errors = dupfiles
+                dupdict[dupkey] = new_filedups
 
         else:
             for file in dupfiles:
+                path = file.path
+
                 if file.dev:
                     try:
                         bufsize = _blksizes.setdefault(
-                            file.dev, blksize(file.path))
+                            file.dev, blksize(path))
                     except Exception:
                         bufsize = 1
                 else:
                     bufsize = None
 
                 try:
-                    hash = checksum(file.path, bufsize)
-                except Exception:
-                    new_filegrp.add_to_errors(file)
+                    hashsum = checksum(path, bufsize)
+
+                except Exception as exc:
+                    onerror(path, exc)
+                    if exists(path):
+                        new_filedups.add_to_errors(file)
+
                 else:
-                    new_filegrp.add_to_dups(hash, file)
+                    new_filedups.add_to_group(hashsum, file)
 
-            new_filegrp.filter()
-            dupdict[id] = new_filegrp
+            new_filedups.filter()
+            dupdict[dupkey] = new_filedups
 
 
-def _dupfilter(filegrp, signsize):
-    for dupdict, id, dupfiles in _iterdups(filegrp):
+def _hashfilter(filedups, signsize, onerror):
+    for dupdict, dupkey, dupfiles in _iterdups(filedups):
         _size = dupfiles[0].size
         if not _size:
             continue
 
-        new_filegrp = FileGroup(filtertype=GroupFilter.Signature)
+        new_filedups = FileDups(DupType.Signature)
 
         signsize = min(_size, signsize)
         for file in dupfiles:
+            path = file.path
             try:
-                sign = signature(file.path, signsize)
-            except Exception:
-                new_filegrp.add_to_errors(file)
-            else:
-                new_filegrp.add_to_dups(sign, file)
+                sign = signature(path, signsize)
 
-        new_filegrp.filter()
-        dupdict[id] = new_filegrp
+            except Exception as exc:
+                onerror(path, exc)
+                if exists(path):
+                    new_filedups.add_to_errors(file)
+
+            else:
+                new_filedups.add_to_group(sign, file)
+
+        new_filedups.filter()
+        dupdict[dupkey] = new_filedups
 
         if _size > signsize:
-            _cmpfilter(new_filegrp)
+            _binaryfilter(new_filedups, onerror)
 
     if len(_blksizes) > MAX_BLKSIZES_LEN:
         clear_blkcache()
 
 
-def _namefilter(filegrp):
-    for dupdict, id, dupfiles in _iterdups(filegrp):
+def _filter(duptype, filedups):
+    for dupdict, dupkey, dupfiles in _iterdups(filedups):
 
-        new_filegrp = FileGroup(filtertype=GroupFilter.Name)
-
-        if len(dupfiles) == 2:
-            try:
-                f0, f1 = dupfiles
-                if f0.name != f1.name:
-                    dupdict.pop(id)
-            except IOError:
-                new_filegrp.errors = dupfiles
-                dupdict[id] = new_filegrp
-        else:
-            new_filegrp.filter(dupfiles)
-            dupdict[id] = new_filegrp
-
-
-def _mtimefilter(filegrp):
-    for dupdict, id, dupfiles in _iterdups(filegrp):
-
-        new_filegrp = FileGroup(filtertype=GroupFilter.Mtime)
+        new_filedups = FileDups(duptype)
 
         if len(dupfiles) == 2:
             try:
                 f0, f1 = dupfiles
-                if f0.mtime != f1.mtime:
-                    dupdict.pop(id)
+                if f0[duptype] != f1[duptype]:
+                    dupdict.pop(dupkey)
             except IOError:
-                new_filegrp.errors = dupfiles
-                dupdict[id] = new_filegrp
+                new_filedups.errors = dupfiles
+                dupdict[dupkey] = new_filedups
         else:
-            new_filegrp.filter(dupfiles)
-            dupdict[id] = new_filegrp
+            new_filedups.filter(dupfiles)
+            dupdict[dupkey] = new_filedups
 
 
-def _permsfilter(filegrp):
-    for dupdict, id, dupfiles in _iterdups(filegrp):
+def _namefilter(filedups):
+    return _filter(DupType.Name, filedups)
 
-        new_filegrp = FileGroup(filtertype=GroupFilter.Mode)
 
-        if len(dupfiles) == 2:
-            try:
-                f0, f1 = dupfiles
-                if f0.mode != f1.mode:
-                    dupdict.pop(id)
-            except IOError:
-                new_filegrp.errors = dupfiles
-                dupdict[id] = new_filegrp
-        else:
-            new_filegrp.filter(dupfiles)
-            dupdict[id] = new_filegrp
+def _mtimefilter(filedups):
+    return _filter(DupType.Mtime, filedups)
+
+
+def _permsfilter(filedups):
+    return _filter(DupType.Mode, filedups)
 
 
 def _filecheck(file, minsize, included_match, excluded_match,
                scanempties, scansystems, scanarchived, scanhidden):
+
     path = file.path
     size = file.size
+
     if not size and not scanempties:
         raise SkipException
     elif size < minsize:
@@ -196,21 +186,14 @@ def _filterpaths(paths, followlinks):
 
 
 def _filterdups(paths, minsize, include, exclude, recursive, followlinks,
-                scanlinks, scanempties, scansystems, scanarchived, scanhidden):
+                scanlinks, scanempties, scansystems, scanarchived, scanhidden,
+                onerror):
 
-    filegrp = FileGroup(filtertype=GroupFilter.Ident)
+    filedups = FileDups(DupType.Ident)
 
-    if include:
-        included_match = compilecards(include).match
-    else:
-        def included_match(path):
-            return True
-
-    if exclude:
-        excluded_match = compilecards(exclude).match
-    else:
-        def excluded_match(path):
-            return False
+    cc = compilecards
+    included_match = cc(include).match if include else lambda p: True
+    excluded_match = cc(exclude).match if exclude else lambda p: False
 
     args = (minsize, included_match, excluded_match, scanempties, scansystems,
             scanarchived, scanhidden)
@@ -225,24 +208,32 @@ def _filterdups(paths, minsize, include, exclude, recursive, followlinks,
         file = FileInfo(filename)
         try:
             _filecheck(file, *args)
+
         except SkipException:
             continue
-        except (IOError, OSError):
-            errnames.append(file)
+
+        except (IOError, OSError) as exc:
+            path = file.path
+            onerror(path, exc)
+            if exists(path):
+                errnames.append(path)
+
         else:
-            ident = (file.type, file.size)
-            filegrp.add_to_dups(ident, file)
+            ident = (file.ifmt, file.size)
+            filedups.add_to_group(ident, file)
 
     if recursive:
         seen = set()
 
-        def onerror(exception):
-            errnames.append(exception.filename)
+        def _onerror(exc):
+            onerror(exc.filename, exc)
+            errnames.append(exc.filename)
 
         for dirname in dirnames:
             dirpath = fullpath(dirname)
 
-            walk_it = _walk(seen, dirpath, onerror, followlinks)
+            walk_it = _walk(seen, dirpath, _onerror, followlinks)
+
             for files, links in walk_it:
                 if scanlinks:
                     files += links
@@ -252,32 +243,37 @@ def _filterdups(paths, minsize, include, exclude, recursive, followlinks,
                     file = FileInfo(entry.name, entry.path, st)
                     try:
                         _filecheck(file, *args)
+
                     except SkipException:
                         continue
-                    except (IOError, OSError):
-                        errnames.append(file)
+
+                    except (IOError, OSError) as exc:
+                        path = file.path
+                        onerror(path, exc)
+                        if exists(path):
+                            errnames.append(path)
+
                     else:
-                        ident = (file.type, file.size)
-                        filegrp.add_to_dups(ident, file)
+                        ident = (file.ifmt, file.size)
+                        filedups.add_to_group(ident, file)
 
-    filegrp.filter()
-    unscntuple = splitpaths(errnames, followlinks)
+    filedups.filter()
 
-    return filegrp, unscntuple
+    return filedups, errnames
 
 
-def _listdups(filegrp):
+def _listdups(filedups):
     with closing(ThreadPool()) as pool:
         dups = [sorted(pool.map(attrgetter('path'), dupfiles))
-                for dupdict, id, dupfiles in _iterdups(filegrp) if dupfiles]
+                for dupdict, dupkey, dupfiles in _iterdups(filedups) if dupfiles]
     dups.sort(key=len, reverse=True)
     return dups
 
 
-def _listerrors(filegrp):
+def _listerrors(filedups):
     with closing(ThreadPool()) as pool:
         errors = [sorted(pool.map(attrgetter('path'), errlist))
-                  for errlist in _itererrors(filegrp) if errlist]
+                  for errlist in _itererrors(filedups) if errlist]
     errors.sort(key=len, reverse=True)
     return errors
 
@@ -288,7 +284,7 @@ def _find(paths,
           recursive=True, followlinks=False,
           scanlinks=False, scanempties=False,
           scansystems=True, scanarchived=True, scanhidden=True,
-          signsize=None):
+          signsize=None, onerror=None):
 
     if not paths:
         raise ValueError('Paths must not be empty')
@@ -299,32 +295,33 @@ def _find(paths,
     if signsize is None:
         signsize = DEFAULT_SIGNSIZE
 
-    filegrp, unscntuple = _filterdups(
+    filedups, scanerrors = _filterdups(
         paths, minsize, include, exclude, recursive, followlinks,
-        scanlinks, scanempties, scansystems, scanarchived, scanhidden)
+        scanlinks, scanempties, scansystems, scanarchived, scanhidden,
+        onerror)
 
     if compareperms:
-        _permsfilter(filegrp)
+        _permsfilter(filedups)
 
     if comparemtime:
-        _mtimefilter(filegrp)
+        _mtimefilter(filedups)
 
     if comparename:
-        _namefilter(filegrp)
+        _namefilter(filedups)
 
-    _dupfilter(filegrp, signsize)
+    _hashfilter(filedups, signsize, onerror or lambda f, e: None)
 
-    return filegrp, unscntuple
+    return filedups, scanerrors
 
 
 @from_iterable
 def find(*paths, **kwargs):
-    filegrp, unscntuple = _find(paths, **kwargs)
+    filedups, scanerrors = _find(paths, **kwargs)
 
-    dups = _listdups(filegrp)
-    errors = _listerrors(filegrp)
+    dups = _listdups(filedups)
+    errors = _listerrors(filedups)
 
-    return dups, errors, unscntuple
+    return dups, errors, scanerrors
 
 
 # @from_iterable
