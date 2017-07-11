@@ -136,25 +136,25 @@ Methods
 -  **Return**: Nested lists of paths of duplicate files.
 -  **Parameters**:
 
-   -  ``paths`` – Iterable of directory or file paths.
-   -  ``minsize`` – *(optional)* Minimum size of files to include in
+   -  ``paths`` -- Iterable of directory or file paths.
+   -  ``minsize`` -- *(optional)* Minimum size of files to include in
       scanning (default to ``DEFAULT_MINSIZE``).
-   -  ``include`` – *(optional)* Wildcard pattern of files to include in
+   -  ``include`` -- *(optional)* Wildcard pattern of files to include in
       scanning.
-   -  ``exclude`` – *(optional)* Wildcard pattern of files to exclude
+   -  ``exclude`` -- *(optional)* Wildcard pattern of files to exclude
       from scanning.
-   -  ``comparename`` – *(optional)* Check file name.
-   -  ``comparemtime`` – *(optional)* Check file modification time.
-   -  ``compareperms`` – *(optional)* Check file mode (permissions).
-   -  ``recursive`` – *(optional)* Scan directory recursively.
-   -  ``followlinks`` – *(optional)* Follow symbolic links pointing to
+   -  ``comparename`` -- *(optional)* Check file name.
+   -  ``comparemtime`` -- *(optional)* Check file modification time.
+   -  ``compareperms`` -- *(optional)* Check file mode (permissions).
+   -  ``recursive`` -- *(optional)* Scan directory recursively.
+   -  ``followlinks`` -- *(optional)* Follow symbolic links pointing to
       directory.
-   -  ``scanlinks`` – *(optional)* Scan symbolic links pointing to file.
-   -  ``scanempties`` – *(optional)* Scan empty files.
-   -  ``scansystems`` – *(optional)* Scan OS files.
-   -  ``scanarchived`` – *(optional)* Scan archived files.
-   -  ``scanhidden`` – *(optional)* Scan hidden files.
-   -  ``signsize`` – *(optional)* Size of bytes to read from file as
+   -  ``scanlinks`` -- *(optional)* Scan symbolic links pointing to file.
+   -  ``scanempties`` -- *(optional)* Scan empty files.
+   -  ``scansystems`` -- *(optional)* Scan OS files.
+   -  ``scanarchived`` -- *(optional)* Scan archived files.
+   -  ``scanhidden`` -- *(optional)* Scan hidden files.
+   -  ``signsize`` -- *(optional)* Size of bytes to read from file as
       signature (default to ``DEFAULT_SIGNSIZE``).
 
 .. _Description: #description
