@@ -5,6 +5,7 @@ import os
 import platform
 import re
 import stat
+import subprocess
 import sys
 
 import xxhash
@@ -82,6 +83,20 @@ def compilecards(wildcards):
     return re.compile(pattern, flags)
 
 
+def _scaniter(iterable, onerror):
+    while True:
+        try:
+            try:
+                yield next(iterable)
+            except StopIteration:
+                break
+
+        except OSError as exc:
+            if onerror is not None:
+                onerror(exc)
+            return
+
+
 def _scandir(path, onerror, followlinks):
     dirs = []
     files = []
@@ -96,23 +111,16 @@ def _scandir(path, onerror, followlinks):
         return
 
     try:
-        while True:
-            try:
-                try:
-                    entry = next(scandir_it)
-                except StopIteration:
-                    break
+        for entry in _scaniter(scandir_it, onerror):
 
-            except OSError as exc:
-                if onerror is not None:
-                    onerror(exc)
-                return
+            if entry.is_file(follow_symlinks=False):
+                files.append(entry)
 
-            if entry.is_dir(followlinks):
+            elif entry.is_dir(followlinks):
                 dirs.append(entry)
 
             elif entry.is_file():
-                (links if entry.is_symlink() else files).append(entry)
+                links.append(entry)
 
         return dirs, files, links
 
@@ -359,8 +367,6 @@ def _is_nt_ssd(path):
 
 
 def _is_osx_ssd(path):
-    import subprocess
-
     block = blkdevice(path)
     cmd = 'diskutil info {0} | grep "Solid State"'.format(block)
     try:
