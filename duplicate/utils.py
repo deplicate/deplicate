@@ -49,9 +49,9 @@ def fullpath(path):
 
 def fsdecode(path):
     try:
-        upath = os.fsdecode(path)
-    except AttributeError:
         upath = unicode(path)
+    except NameError:
+        upath = os.fsdecode(path)
     return upath
 
 
