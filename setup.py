@@ -39,6 +39,7 @@ setup(
     packages=['duplicate'],
     include_package_data=True,
     install_requires=[
+        'enum34;python_version<"3.4"',
         'psutil;os_name!="nt"',
         'pyobjc;sys_platform=="darwin"',
         'pypiwin32>=154;os_name=="nt"',
