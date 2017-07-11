@@ -309,7 +309,7 @@ def _find(paths,
     if comparename:
         _namefilter(filedups)
 
-    _hashfilter(filedups, signsize, onerror or lambda f, e: None)
+    _hashfilter(filedups, signsize, onerror or (lambda f, e: None))
 
     return filedups, scanerrors
 
