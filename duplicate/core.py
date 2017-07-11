@@ -152,18 +152,6 @@ def _filter(duptype, filedups):
             dupdict[dupkey] = new_filedups
 
 
-def _namefilter(filedups):
-    return _filter(DupType.Name, filedups)
-
-
-def _mtimefilter(filedups):
-    return _filter(DupType.Mtime, filedups)
-
-
-def _permsfilter(filedups):
-    return _filter(DupType.Mode, filedups)
-
-
 def _filecheck(file, minsize, included_match, excluded_match,
                scanempties, scansystems, scanarchived, scanhidden):
 
@@ -197,31 +185,36 @@ def _filterpaths(paths, followlinks):
     return splitpaths(set(upaths), followlinks)
 
 
-def _filescanner(filedups, filenames, onerror):
+def _filehandler(filedups, errnames, filename, filepath, filestat, args,
+                 onerror):
+    file = FileInfo(filename, filepath, filestat)
+    try:
+        _filecheck(file, *args)
+
+    except SkipException:
+        continue
+
+    except (IOError, OSError) as exc:
+        path = file.path
+        onerror(path, exc)
+        if exists(path):
+            errnames.append(path)
+
+    else:
+        ident = (file.ifmt, file.size)
+        filedups.add_to_group(ident, file)
+
+
+def _filescanner(filedups, filenames, args, onerror):
     errnames = []
 
     for filename in filenames:
-        file = FileInfo(filename)
-        try:
-            _filecheck(file, *args)
-
-        except SkipException:
-            continue
-
-        except (IOError, OSError) as exc:
-            path = file.path
-            onerror(path, exc)
-            if exists(path):
-                errnames.append(path)
-
-        else:
-            ident = (file.ifmt, file.size)
-            filedups.add_to_group(ident, file)
+        _filehandler(filedups, errnames, filename, None, None, args, onerror)
 
     return errnames
 
 
-def _dirscanner(filedups, dirnames, onerror):
+def _dirscanner(filedups, dirnames, args, followlinks, scanlinks, onerror):
     errnames = []
     seen = set()
 
@@ -238,22 +231,8 @@ def _dirscanner(filedups, dirnames, onerror):
 
             for entry in files:
                 st = entry.stat(follow_symlinks=False)
-                file = FileInfo(entry.name, entry.path, st)
-                try:
-                    _filecheck(file, *args)
-
-                except SkipException:
-                    continue
-
-                except (IOError, OSError) as exc:
-                    path = file.path
-                    onerror(path, exc)
-                    if exists(path):
-                        errnames.append(path)
-
-                else:
-                    ident = (file.ifmt, file.size)
-                    filedups.add_to_group(ident, file)
+                _filehandler(filedups, errnames, entry.name, entry.path, st,
+                             args, onerror)
 
     return errnames
 
@@ -276,10 +255,12 @@ def _filterdups(paths, minsize, include, exclude, recursive, followlinks,
     if scanlinks:
         filenames += linknames
 
-    errnames = _filescanner(filedups, filenames, onerror)
+    errnames = _filescanner(filedups, filenames, args, onerror)
 
     if recursive:
-        errnames.extend(_dirscanner(filedups, dirnames, onerror))
+        errnames.extend(
+            _dirscanner(filedups, dirnames, args, followlinks, scanlinks,
+                        onerror))
 
     filedups.filter()
 
@@ -326,13 +307,13 @@ def _find(paths,
         onerror)
 
     if compareperms:
-        _permsfilter(filedups)
+        _filter(DupType.Mode, filedups)
 
     if comparemtime:
-        _mtimefilter(filedups)
+        _filter(DupType.Mtime, filedups)
 
     if comparename:
-        _namefilter(filedups)
+        _filter(DupType.Name, filedups)
 
     _hashfilter(filedups, signsize, onerror or (lambda f, e: None))
 
