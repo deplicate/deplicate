@@ -10,6 +10,8 @@ Table of contents
 - [Features](#features)
 - [Installation](#installation)
 - [Usage](#usage)
+  - [Quick Examples](#quick-examples)
+  - [Advanced Examples](#advanced-examples)
 - [API Reference](#api-reference)
   - [Properties](#properties)
   - [Methods](#methods)
@@ -53,7 +55,7 @@ Features
 - [x] Error handling
 - [x] Unicode decoding
 - [x] Safe from recursion loop
-- [x] SSD detection
+- [ ] SSD detection
 - [ ] Multi-processing
 - [ ] Fully documented
 - [ ] PyPy support
@@ -88,17 +90,45 @@ If the above commands fail, consider installing it with the option
 Usage
 -----
 
-To find the duplicates, import in your python script
-the new available module `duplicate` and call its function `find`:
+Import in your python script the new available module `duplicate`
+and call its function `find`.
+
+### Quick Examples
+
+> **Note:**
+> By default directory paths are scanned recursively.
+
+> **Note:**
+> By default files smaller than **100 MiB** are not scanned.
+
+Scan a single directory for duplicates:
 
     import duplicate
 
-    entries = ['/path/to/dir1', '/path/to/dir2', '/path/to/file1']
+    duplicate.find('/path/to/dir')
 
-    duplicate.find(entries, recursive=True)
+Scan more directories together:
 
-Resulting output is a list of lists of file paths, where each list groups
-all the same files:
+    import duplicate
+
+    duplicate.find('/path/to/dir1', '/path/to/dir2', '/path/to/dir3')
+
+Scan from iterable:
+
+    import duplicate
+
+    iterable = ['/path/to/dir1', '/path/to/dir2', '/path/to/dir3']
+
+    duplicate.find.from_iterable(iterable)
+
+Scan ignoring the minimum file size threshold:
+
+    import duplicate
+
+    duplicate.find('/path/to/dir', minsize=0)
+
+Resulting output for will be always a list of lists of file paths,
+where each list collects together all the same files (aka. the duplicates):
 
     [
         ['/path/to/dir1/file1', '/path/to/file1', '/path/to/dir2/subdir1/file1]',
@@ -106,10 +136,44 @@ all the same files:
     ]
 
 > **Note:**
-> Resulting file paths are in canonical representation.
+> Resulting file paths are returned in canonical form.
 
 > **Note:**
-> Resulting lists are sorted in descending order by length.
+> Lists of resulting file paths are sorted in descending order by length.
+
+### Advanced Examples
+
+Scan single files (not-recursively):
+
+    import duplicate
+
+    duplicate.find('/path/to/file1', '/path/to/file2', '/path/to/dir1',
+                   recursive=False)
+
+> **Notice:**
+> **In _not-recursive mode_, like the case above, directory paths are simply
+> ignored.**
+
+Scan from iterable checking file names and hidden files:
+
+    import duplicate
+
+    iterable = ['/path/to/dir1', '/path/to/file1']
+
+    duplicate.find.from_iterable(iterable, comparename=True, scanhidden=True)
+
+Scan excluding python files:
+
+    import duplicate
+
+    duplicate.find('/path/to/dir', exclude="*.py")
+
+Scan including symbolic links of files:
+
+    import duplicate
+
+    duplicate.find('/path/to/file1', '/path/to/file2', '/path/to/file3',
+                   scanlinks=True)
 
 
 API Reference
@@ -118,11 +182,11 @@ API Reference
 ### Properties
 
 - duplicate.**DEFAULT_MINSIZE**
-  - **Description**: Default minimum file size in bytes.
+  - **Description**: Default minimum file size in Bytes.
   - **Value**: `102400`
 
 - duplicate.**DEFAULT_SIGNSIZE**
-  - **Description**: Default file signature size in bytes.
+  - **Description**: Default file signature size in Bytes.
   - **Value**: `512`
 
 - duplicate.**MAX_BLKSIZES_LEN**
@@ -139,7 +203,7 @@ API Reference
 - duplicate.**find**(`paths, minsize=None, include=None, exclude=None,
     comparename=False, comparemtime=False, compareperms=False, recursive=True,
     followlinks=False, scanlinks=False, scanempties=False, scansystems=True,
-    scanarchived=True, scanhidden=True, signsize=None`)
+    scanarchived=True, scanhidden=True, signsize=None`, onerror=None)
   - **Description**: Find duplicate files.
   - **Return**: Nested lists of paths of duplicate files.
   - **Parameters**:
@@ -159,8 +223,9 @@ API Reference
     - `scansystems` – _(optional)_ Scan OS files.
     - `scanarchived` – _(optional)_ Scan archived files.
     - `scanhidden` – _(optional)_ Scan hidden files.
-    - `signsize` – _(optional)_ Size of bytes to read from file as signature
+    - `signsize` – _(optional)_ Size of Bytes to read from file as signature
       (default to `DEFAULT_SIGNSIZE`).
+    - `onerror` – _(optional)_ .
 
 
 ------------------------------------------------
