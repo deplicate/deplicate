@@ -152,23 +152,24 @@ def _filter(duptype, filedups):
             dupdict[dupkey] = new_filedups
 
 
-def _filecheck(file, minsize, included_match, excluded_match,
-               scanempties, scansystems, scanarchived, scanhidden):
-
-    path = file.path
-    size = file.size
-
+def _sizecheck(size, minsize, scanempties):
     if not size and not scanempties:
         raise SkipException
+
     elif size < minsize:
         raise SkipException
 
-    elif excluded_match(path):
+
+def _rulecheck(path, included_match, excluded_match):
+    if excluded_match(path):
         raise SkipException
+
     elif not included_match(path):
         raise SkipException
 
-    elif not scanhidden and is_hidden(path):
+
+def _attrcheck(path, scansystems, scanarchived, scanhidden):
+    if not scanhidden and is_hidden(path):
         raise SkipException
 
     elif not scanarchived and is_archived(path):
@@ -176,6 +177,14 @@ def _filecheck(file, minsize, included_match, excluded_match,
 
     elif not scansystems and is_system(path):
         raise SkipException
+
+
+def _filecheck(file, minsize, included_match, excluded_match,
+               scanempties, scansystems, scanarchived, scanhidden):
+
+    _sizecheck(file.size, minsize, scanempties)
+    _rulecheck(file.path, included_match, excluded_match)
+    _attrcheck(file.path, scansystems, scanarchived, scanhidden)
 
 
 def _filterpaths(paths, followlinks):
