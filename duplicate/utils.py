@@ -2,13 +2,15 @@
 
 import fnmatch
 import os
+import platform
 import re
 import stat
+import subprocess
 import sys
 
 import xxhash
 
-from os import lstat, statvfs
+from os import lstat
 from os.path import isdir, isfile, islink, ismount, splitdrive
 from random import randint
 from time import sleep
@@ -36,11 +38,11 @@ _OSX_WILDCARDS = (
 _POSIX_WILDCARDS = ('*~', '.fuse_hidden*', '.directory', '.Trash-*', '.nfs*')
 
 
-def append_to_dict(root, key, value):
-    if key in root:
-        root[key].append(value)
-    else:
-        root[key] = [value]
+def from_iterable(func):
+    def new(args, **kwargs):
+        return func(*args, **kwargs)
+    func.from_iterable = new
+    return func
 
 
 def fullpath(path):
@@ -56,7 +58,7 @@ def fsdecode(path):
 
 
 def splitpaths(iterable, followlinks=False):
-    dirs  = []
+    dirs = []
     files = []
     links = []
 
@@ -64,7 +66,7 @@ def splitpaths(iterable, followlinks=False):
         if isdir(name):
             if not followlinks and islink(name):
                 continue
-            dirnames.append(name)
+            dirs.append(name)
 
         elif isfile(name):
             (links if islink(name) else files).append(name)
@@ -83,7 +85,7 @@ def compilecards(wildcards):
 
 
 def _scandir(path, onerror, followlinks):
-    dirs  = []
+    dirs = []
     files = []
     links = []
 
@@ -137,7 +139,7 @@ def _walk(seen, path, onerror, followlinks):
         if dirpath in seen:
             continue
 
-        for files, links in _walk(seen, dirpath, followlinks):
+        for files, links in _walk(seen, dirpath, onerror, followlinks):
             yield files, links
 
 
@@ -149,7 +151,7 @@ def walk(dirname, onerror=None, followlinks=False):
 
 def _has_posix_hidden_attribute(filename):
     try:
-        st = os.lstat(filename)
+        st = lstat(filename)
         flag = bool(st.st_flags & stat.UF_HIDDEN)
 
     except AttributeError:
@@ -177,7 +179,7 @@ def _has_osx_hidden_attribute(filename):
 
 def _has_nt_hidden_attribute(filename):
     try:
-        st = os.lstat(filename)
+        st = lstat(filename)
         flag = bool(st.st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
 
     except AttributeError:
@@ -203,7 +205,7 @@ def is_hidden(filename):
 
 def _has_nt_archive_attribute(filename):
     try:
-        st = os.lstat(filename)
+        st = lstat(filename)
         flag = bool(st.st_file_attributes & stat.FILE_ATTRIBUTE_ARCHIVE)
 
     except AttributeError:
@@ -218,7 +220,7 @@ def _has_nt_archive_attribute(filename):
 
 def _has_posix_archive_attribute(filename):
     try:
-        st = os.lstat(filename)
+        st = lstat(filename)
         flag = not bool(st.st_flags & stat.SF_ARCHIVED)
 
     except AttributeError:
@@ -238,7 +240,7 @@ def is_archived(filename):
 
 def _has_nt_system_attribute(filename):
     try:
-        st = os.lstat(filename)
+        st = lstat(filename)
         flag = bool(st.st_file_attributes & stat.FILE_ATTRIBUTE_SYSTEM)
 
     except AttributeError:
@@ -316,7 +318,7 @@ def blksize(path):
     Get optimal file system buffer size (in bytes) for I/O calls.
     """
     try:
-        size = statvfs(path).f_bsize
+        size = os.statvfs(path).f_bsize
 
     except AttributeError:
         size = _nt_blksize(path)
@@ -354,8 +356,6 @@ def _is_nt_ssd(path):
 
 
 def _is_osx_ssd(path):
-    import subprocess
-
     block = blkname(path)
     cmd = 'diskutil info {0} | grep "Solid State"'.format(block)
     try:
@@ -368,7 +368,7 @@ def _is_osx_ssd(path):
     return flag
 
 
-def _is_posix_ssd(path)
+def _is_posix_ssd(path):
     block = blkname(path)
     path = '/sys/block/{0}/queue/rotational'.format(block)
     try:
@@ -404,7 +404,7 @@ def is_os_64bit():
     return flag
 
 
-_xxhash_xxh = xxhash.xxh64() if is_os_64bit else xxhash.xxh32()
+_xxhash_xxh = xxhash.xxh64 if is_os_64bit else xxhash.xxh32
 _xxhash_seed = randint(0, 2 ** 64 if is_os_64bit else 2 ** 32)
 
 
@@ -412,12 +412,11 @@ def signature(filename, size=None):
     buf = (size or min(lstat(filename).st_size, 512)) // 2
 
     with open(filename, mode='rb') as fp:
-        header = fp.read(buf)
+        header = _xxhash_xxh(fp.read(buf), seed=_xxhash_seed)
         fp.seek(-buf, os.SEEK_END)
-        footer = fp.read()
+        footer = _xxhash_xxh(fp.read(), seed=_xxhash_seed)
 
-    return (_xxhash_xxh(header, seed=_xxhash_seed),
-            _xxhash_xxh(footer, seed=_xxhash_seed))
+    return header.hexdigest(), footer.hexdigest()
 
 
 def checksum(filename, bufsize=None):
