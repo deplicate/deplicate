@@ -11,6 +11,8 @@ Table of contents
 - [Installation](#installation)
 - [Usage](#usage)
 - [API Reference](#api-reference)
+  - [Properties](#properties)
+  - [Methods](#methods)
 
 
 Status
@@ -50,7 +52,7 @@ Features
 - [x] Multi-filtering
 - [x] Error handling
 - [x] Unicode decoding
-- [-] SSD detection
+- [ ] SSD detection
 - [ ] Multi-processing
 - [ ] Fully documented
 - [ ] PyPy support
@@ -103,7 +105,7 @@ all the same files:
     ]
 
 > **Note:**
-> Resulting file paths are the canonical path of the founded file names.
+> Resulting file paths are in canonical representation.
 
 > **Note:**
 > Resulting lists are sorted in descending order by length.
@@ -112,10 +114,32 @@ all the same files:
 API Reference
 -------------
 
+### Properties
+
+- duplicate.**DEFAULT_MINSIZE**
+  - **Description**: Default minimum file size in bytes.
+  - **Value**: `102400`
+
+- duplicate.**DEFAULT_SIGNSIZE**
+  - **Description**: Default file signature size in bytes.
+  - **Value**: `512`
+
+- duplicate.**MAX_BLKSIZES_LEN**
+  - **Description**: Default maximum number of cached block size values.
+  - **Value**: `128`
+
+### Methods
+
+- duplicate.**clear_blkcache**()
+  - **Description**: Clear the internal blksizes cache.
+  - **Return**: None.
+  - **Parameters**: None
+
 - duplicate.**find**(`paths, minsize=None, include=None, exclude=None,
     comparename=False, comparemtime=False, compareperms=False, recursive=False,
     followlinks=False, scanlinks=False, scanempties=False, scansystems=True,
     scanarchived=True, scanhidden=True, signsize=None`)
+  - **Description**: Find duplicate files.
   - **Return**: Nested lists of paths of duplicate files.
   - **Parameters**:
     - `paths` – Iterable of directory or file paths.
