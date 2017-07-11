@@ -43,16 +43,17 @@ Features
 --------
 
 - [x] Optimized for speed
-- [x] N-tree usage for low memory consumation
+- [x] N-tree parsing for low memory consumation
 - [x] Multi-threaded (partially)
 - [x] Raw drive data access to maximize I/O performances
 - [x] xxHash algorithm for fast file identification
-- [x] File size and signature checking for quick file exclusion
+- [x] File size and signature checking for quick duplicate exclusion
 - [x] Extended file attributes scanning
 - [x] Multi-filtering
 - [x] Error handling
 - [x] Unicode decoding
-- [ ] SSD detection
+- [x] Safe from recursion loop
+- [x] SSD detection
 - [ ] Multi-processing
 - [ ] Fully documented
 - [ ] PyPy support
@@ -133,10 +134,10 @@ API Reference
 - duplicate.**clear_blkcache**()
   - **Description**: Clear the internal blksizes cache.
   - **Return**: None.
-  - **Parameters**: None
+  - **Parameters**: None.
 
 - duplicate.**find**(`paths, minsize=None, include=None, exclude=None,
-    comparename=False, comparemtime=False, compareperms=False, recursive=False,
+    comparename=False, comparemtime=False, compareperms=False, recursive=True,
     followlinks=False, scanlinks=False, scanempties=False, scansystems=True,
     scanarchived=True, scanhidden=True, signsize=None`)
   - **Description**: Find duplicate files.
