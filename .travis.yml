@@ -51,7 +51,9 @@ after_script:
   - tox -e dups
   - tox -e pylint -- -E
 # after_success: ocular
-before_deploy: test $TRAVIS_TEST_RESULT -eq 0
+before_deploy: 
+  - test $TRAVIS_TEST_RESULT -eq 0
+  - git fetch --tags
 deploy:
   - provider: pypi
     user:
