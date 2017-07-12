@@ -190,7 +190,7 @@ API Reference
   - **Value**: `512`
 
 - duplicate.**MAX_BLKSIZES_LEN**
-  - **Description**: Default maximum number of cached block size values.
+  - **Description**: Default maximum number of cached block sizes.
   - **Value**: `128`
 
 ### Methods
@@ -207,7 +207,7 @@ API Reference
   - **Description**: Find duplicate files.
   - **Return**: Nested lists of paths of duplicate files.
   - **Parameters**:
-    - `paths` – Iterable of directory or file paths.
+    - `paths` – Iterable of directory and file paths.
     - `minsize` – _(optional)_ Minimum size of files to include in scanning
       (default to `DEFAULT_MINSIZE`).
     - `include` – _(optional)_ Wildcard pattern of files to include in scanning.
@@ -225,7 +225,9 @@ API Reference
     - `scanhidden` – _(optional)_ Scan hidden files.
     - `signsize` – _(optional)_ Size of Bytes to read from file as signature
       (default to `DEFAULT_SIGNSIZE`).
-    - `onerror` – _(optional)_ .
+    - `onerror` – _(optional)_ Callback function called with two arguments,
+      `filename` and `exception`, when an error occurs during file scanning or
+      processing.
 
 
 ------------------------------------------------
