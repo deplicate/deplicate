@@ -299,7 +299,9 @@ def _find(paths,
           recursive=True, followlinks=False,
           scanlinks=False, scanempties=False,
           scansystems=True, scanarchived=True, scanhidden=True,
-          signsize=None, onerror=None):
+          signsize=None, onerror=None, notify=lambda s, p=None: None):
+
+    notify('preparing to scan')
 
     if not paths:
         raise ValueError('Paths must not be empty')
@@ -310,28 +312,37 @@ def _find(paths,
     if signsize is None:
         signsize = DEFAULT_SIGNSIZE
 
+    notify('scanning for similar files')
+
     filedups, scanerrors = _filterdups(
         paths, minsize, include, exclude, recursive, followlinks,
         scanlinks, scanempties, scansystems, scanarchived, scanhidden,
         onerror)
 
     if compareperms:
+        notify('filtering files by permission mode')
         _filter(DupType.Mode, filedups)
 
     if comparemtime:
+        notify('filtering files by modification time')
         _filter(DupType.Mtime, filedups)
 
     if comparename:
+        notify('filtering files by name')
         _filter(DupType.Name, filedups)
 
+    notify('filtering files by content')
     _hashfilter(filedups, signsize, onerror or (lambda f, e: None))
 
+    notify('finalizing results')
     return filedups, scanerrors
 
 
 @from_iterable
 def find(*paths, **kwargs):
     filedups, scanerrors = _find(paths, **kwargs)
+
+    kwargs.pop('notify', None)
 
     dups = _listdups(filedups)
     errors = _listerrors(filedups)
@@ -340,5 +351,5 @@ def find(*paths, **kwargs):
 
 
 # @from_iterable
-# def fixup():
+# def purge():
     # raise NotImplementedError
