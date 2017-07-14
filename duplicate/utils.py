@@ -6,14 +6,22 @@ import fnmatch
 import os
 import platform
 import re
+import shutil
 import stat
 import subprocess
 import sys
+
+from contextlib import closing, contextmanager
+from math import ceil
+from multiprocessing.pool import ThreadPool
 from os import lstat
-from os.path import isdir, isfile, islink, ismount, splitdrive
+from os.path import exists, isdir, isfile, islink, ismount, splitdrive
 from time import sleep
 
+import psutil
 import xxhash
+
+from send2trash import send2trash
 
 try:
     import directio
@@ -25,6 +33,11 @@ try:
 except ImportError:
     from scandir import scandir
 
+
+#: percentage of bytes to read from file by sidesum function
+SIDESUM_PERCENT = 10
+#: size of bytes to read from file by signature function
+SIGNATURE_SIZE = 256
 
 _NT_WILDCARDS = (
     'Thumbs.db', 'ehthumbs.db', 'ehthumbs_vista.db', '*.stackdump',
@@ -39,10 +52,17 @@ _POSIX_WILDCARDS = ('*~', '.fuse_hidden*', '.directory', '.Trash-*', '.nfs*')
 
 
 def from_iterable(func):
-    def new(args, **kwargs):
+    def wrapper(args, **kwargs):
         return func(*args, **kwargs)
-    func.from_iterable = new
+    func.from_iterable = wrapper
     return func
+
+
+def append_to_dict(root, key, value):
+    if key in root:
+        root[key].append(value)
+    else:
+        root[key] = [value]
 
 
 def fullpath(path):
@@ -76,7 +96,9 @@ def splitpaths(iterable, followlinks=False):
 
 def compilecards(wildcards):
     translate = fnmatch.translate
-    patterns = map(translate, wildcards)
+
+    with closing(ThreadPool()) as pool:
+        patterns = pool.imap_unordered(translate, wildcards)
 
     pattern = r'|'.join(patterns)
     flags = re.I if os.name == 'nt' else 0
@@ -137,7 +159,7 @@ def _walk(seen, path, onerror, followlinks):
         return
 
     dirs, files, links = _scandir(path, onerror, followlinks)
-    yield files, links
+    yield dirs, files, links
 
     seen.add(path)
 
@@ -148,14 +170,15 @@ def _walk(seen, path, onerror, followlinks):
         if dirpath in seen:
             continue
 
-        for files, links in _walk(seen, dirpath, onerror, followlinks):
-            yield files, links
+        for dirs, files, links in _walk(seen, dirpath, onerror, followlinks):
+            yield dirs, files, links
 
 
-def walk(dirname, onerror=None, followlinks=False):
-    seen = set()
+def walk(dirname, onerror=None, followlinks=False, scout=None):
+    if not scout:
+        scout = set()
     path = fullpath(dirname)
-    return _walk(seen, path, onerror, followlinks)
+    return _walk(scout, path, onerror, followlinks)
 
 
 def _has_posix_hidden_attribute(filename):
@@ -311,8 +334,6 @@ def mountpoint(path):
 
 
 def blkdevice(path):
-    import psutil
-
     partitions = psutil.disk_partitions()
     mount = mountpoint(path)
 
@@ -333,6 +354,7 @@ def blksize(path):
         size = os.statvfs(path).f_bsize
 
     except AttributeError:
+        path = fullpath(path)
         size = _nt_blksize(path)
 
     return size
@@ -343,7 +365,8 @@ def _is_nt_ssd(path):
 
     flag = False
 
-    drive = splitdrive(path).upper()
+    path = fullpath(path)
+    drive = splitdrive(path)[0].upper()
     drivetype = win32file.GetDriveType(drive)
 
     if drivetype == win32file.DRIVE_RAMDISK:
@@ -361,8 +384,8 @@ def _is_nt_ssd(path):
                      for log_disk in partition.associators(log_to_part))
 
         c = wmi.WMI(moniker="//./ROOT/Microsoft/Windows/Storage")
-        flag = bool(
-            c.MSFT_PhysicalDisk(DeviceId=str(index[drive]), MediaType=4))
+        flag = bool(c.MSFT_PhysicalDisk(DeviceId=str(index[drive]),
+                    MediaType=4))
 
     return flag
 
@@ -416,11 +439,29 @@ def is_os64():
     return flag
 
 
+_xxhash_null_hexdigest = 'ef46db3751d8e999' if is_os64 else '02cc5d05'
 _xxhash_xxh = xxhash.xxh64 if is_os64 else xxhash.xxh32
 
 
-def signature(filename, size=None):
-    buf = (size or min(lstat(filename).st_size, 512)) // 2
+def _sidesize(filename):
+    filesize = lstat(filename).st_size
+
+    if SIDESUM_PERCENT >= 100:
+        percsize = filesize
+    else:
+        percsize = int(ceil(filesize / 100.0 * SIDESUM_PERCENT))
+        blocksize = blksize(filename)
+        if blocksize < percsize:
+            percsize -= percsize % blocksize
+
+    return percsize // 2
+
+
+def sidesum(filename, chunksize=None):
+    buf = chunksize or _sidesize(filename)
+
+    if not buf:
+        return _xxhash_null_hexdigest, _xxhash_null_hexdigest
 
     with open(filename, mode='rb') as fp:
         header = _xxhash_xxh(fp.read(buf))
@@ -430,34 +471,65 @@ def signature(filename, size=None):
     return header.hexdigest(), footer.hexdigest()
 
 
+@contextmanager
+def readopen(filename, sequential=False, direct=False):
+    try:
+        flags = os.O_RDONLY
+
+        try:
+            seq = os.O_SEQUENTIAL if sequential else os.O_RANDOM
+            flags |= os.O_BINARY | seq
+
+        except AttributeError:
+            pass
+
+        try:
+            if direct:
+                flags |= os.O_DIRECT
+                read = directio.read
+            else:
+                raise AttributeError
+
+        except AttributeError:
+            read = os.read
+
+        fd = os.open(filename, flags)
+        yield lambda buf: read(fd, buf)
+
+    finally:
+        os.close(fd)
+
+
+def signature(filename):
+    with readopen(filename, sequential=True) as read:
+        return read(SIGNATURE_SIZE)
+
+
 def checksum(filename, bufsize=None):
     x = _xxhash_xxh()
+    update = x.update
 
     hbuf = x.block_size << 10
     fsbuf = bufsize or blksize(filename)
     buf = fsbuf if fsbuf > hbuf else hbuf - hbuf % fsbuf
 
-    try:
-        flags = os.O_RDONLY | os.O_BINARY | os.O_SEQUENTIAL
-    except AttributeError:
-        flags = os.O_RDONLY
-
-    try:
-        flags |= os.O_DIRECT
-        read = directio.read
-
-    except AttributeError:
-        read = os.read
-
-    fd = os.open(filename, flags)
-    update = x.update
-    try:
-        data = read(fd, buf)
+    with readopen(filename, sequential=True, direct=True) as read:
+        data = read(buf)
         while data:
             update(data)
-            data = read(fd, buf)
-
+            data = read(buf)
         return x.hexdigest()
 
-    finally:
-        os.close(fd)
+
+def remove(path, trash=False, ignore_errors=False):
+    if ignore_errors and not exists(path):
+        return None
+
+    if islink(path):
+        os.unlink(path)
+    elif trash:
+        send2trash(path)
+    elif isfile(path):
+        os.remove(path)
+    else:
+        shutil.rmtree(path, ignore_errors)
