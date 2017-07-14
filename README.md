@@ -40,22 +40,31 @@ directories, you can also scan a bunch of files directly.
 **deplicate** is written in Pure Python and requires just a couple
 of dependencies to work fine, depending on your system.
 
+From what all we know, it's the most advanced and fastest duplicates finder
+tool for Python, nowadays.
+
 
 Features
 --------
 
 - [x] Optimized for speed
-- [x] N-tree parsing for low memory consumation
+- [x] N-tree layout for low memory consumation
 - [x] Multi-threaded (partially)
-- [x] Raw drive data access to maximize I/O performances
+- [x] Raw drive data access to maximize I/O performances (Unix only)
 - [x] xxHash algorithm for fast file identification
 - [x] File size and signature checking for quick duplicate exclusion
 - [x] Extended file attributes scanning
 - [x] Multi-filtering
-- [x] Error handling
+- [x] Full error handling
 - [x] Unicode decoding
 - [x] Safe from recursion loop
-- [ ] SSD detection
+- [ ] SSD detection (implemented, but not yet used)
+- [ ] Support for moving duplicates to trash/recycle bin
+      (implemented, but not yet used)
+- [x] Command Line Interface (https://github.com/vuolter/deplicate-cli)
+- [x] Structured results
+- [ ] Graphical User Interface
+- [ ] Incremental file chunk checking
 - [ ] Multi-processing
 - [ ] Fully documented
 - [ ] PyPy support
@@ -67,24 +76,21 @@ Installation
 
 Type in your command shell **with _administrator/root_ privileges**:
 
-    pip install deplicate[full]
+    pip install deplicate
 
 In Unix-based systems, this is generally achieved by superseding
 the command `sudo`.
 
-    sudo pip install deplicate[full]
-
-The option `full` ensures that all the optional packages will downloaded and
-installed as well as the mandatory dependencies.
-
-You can install just the main package typing:
-
-    pip install deplicate
+    sudo pip install deplicate
 
 If the above commands fail, consider installing it with the option
 [`--user`](https://pip.pypa.io/en/latest/user_guide/#user-installs):
 
     pip install --user deplicate
+
+> **Note:**
+> You can install **deplicate** with its _Command Line Interface_ typing:
+> `pip install deplicate[cli]`
 
 
 Usage
@@ -185,10 +191,6 @@ API Reference
   - **Description**: Default minimum file size in Bytes.
   - **Value**: `102400`
 
-- duplicate.**DEFAULT_SIGNSIZE**
-  - **Description**: Default file signature size in Bytes.
-  - **Value**: `512`
-
 - duplicate.**MAX_BLKSIZES_LEN**
   - **Description**: Default maximum number of cached block sizes.
   - **Value**: `128`
@@ -223,10 +225,8 @@ API Reference
     - `scansystems` – _(optional)_ Scan OS files.
     - `scanarchived` – _(optional)_ Scan archived files.
     - `scanhidden` – _(optional)_ Scan hidden files.
-    - `signsize` – _(optional)_ Size of Bytes to read from file as signature
-      (default to `DEFAULT_SIGNSIZE`).
     - `onerror` – _(optional)_ Callback function called with two arguments,
-      `filename` and `exception`, when an error occurs during file scanning or
+      `exception` and `filename`, when an error occurs during file scanning or
       processing.
 
 
