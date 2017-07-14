@@ -2,7 +2,6 @@
 
 from setuptools import setup
 
-
 setup(
     name='deplicate',
     version=open('VERSION').read().strip(),
@@ -42,14 +41,15 @@ setup(
     packages=['duplicate'],
     include_package_data=True,
     install_requires=[
+        'directio;os_name!="nt"',
         'enum34;python_version<"3.4"',
-        'psutil;os_name!="nt"',
+        'psutil',
         'pyobjc;sys_platform=="darwin"',
         'pypiwin32>=154;os_name=="nt"',
         'scandir;python_version<"3.5"',
+        'send2trash',
         'wmi;os_name=="nt"',
         'xxhash>=1'],
-    extras_require={
-        'full': ['directio;os_name!="nt"']},
+    extras_require={'cli': ['deplicate-cli']},
     python_requires='>=2.6,!=3.0,!=3.1,!=3.2',
     zip_safe=True)
