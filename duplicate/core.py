@@ -2,29 +2,34 @@
 
 from __future__ import absolute_import
 
+import errno
+import os
+
 from contextlib import closing
 from filecmp import cmp
 from math import ceil
 from multiprocessing.pool import ThreadPool
-from os.path import exists
+from operator import attrgetter
+from os.path import abspath, exists, islink
 
-from .structs import (Cache, DupInfo, FileInfo, FilterType, LogLevel,
-                      ResultInfo, SkipException)
-from .utils import (SIDESUM_PERCENT, SIGNATURE_SIZE, append_to_dict, blksize,
-                    checksum, compilecards, from_iterable, fsdecode, fullpath,
-                    is_archived, is_hidden, is_system, sidesum, signature,
-                    splitpaths, walk)
+import xxhash
 
-DEFAULT_MINSIZE = 100 << 10  #: bytes
-
-_cache = Cache()
+from .structs import Cache, DupInfo, FileInfo, FilterType, SkipException
+from .utils import append_to_dict
+from .utils.fs import (blksize, checksum, fsdecode, is_archived, 
+                       is_hidden, is_os64, is_system, remove, sidesum, 
+                       signature, splitpaths, walk)
 
 
-def clear_cache():
-    """
-    Clear the internal cache.
-    """
-    _cache.clear()
+_LOWSIZE = 900 if os.name == 'nt' else 60  #: bytes
+_MINSIZE = 100 << 10  #: bytes
+_BIGSIZE = 100 << 20  #: bytes
+_SIZERATE = 10
+_BLKSIZE = 4 << 10
+
+_xxhash_xxh = xxhash.xxh64 if is_os64 else xxhash.xxh32
+
+cache = Cache()
 
 
 def _iterdups(dupinfo):
@@ -36,97 +41,101 @@ def _iterdups(dupinfo):
             yield dupinfo, key, value
 
 
-def _blksize(fileinfo):
+def _bufsize(fileinfo):
     # NOTE: stat.st_dev is always zero in Python 2 under Windows. :(
     if fileinfo.dev:
         try:
-            value = _cache.get(fileinfo).blksize
+            value = cache.get(fileinfo).blksize
+            
         except Exception:
             value = 1
     else:
-        value = blksize(fileinfo.name)
-
+        value = blksize(fileinfo.path)
+        
     return value
 
 
 def _checksum(fileinfo):
-    bufsize = _blksize(fileinfo)
-    hashsum = checksum(fileinfo.path, bufsize)
+    try:
+        if islink(fileinfo.path):
+            link = os.readlink(fileinfo.path)
+            hashsum = _xxhash_xxh(link).hexdigest()
+        else:
+            raise AttributeError
+
+    except AttributeError:
+        bufsize = _bufsize(fileinfo)
+        hashsum = checksum(fileinfo.path, bufsize)
     return hashsum
 
 
-def _signature(fileinfo):
-    return hash(signature(fileinfo.path))
-
-
-def _sidesize(fileinfo):
-    percsize = int(ceil(fileinfo.size / 100.0 * SIDESUM_PERCENT))
-    blocksize = _blksize(fileinfo)
-    if blocksize < percsize:
-        percsize -= percsize % blocksize
-    return percsize // 2
+def _chksize(fileinfo):
+    rate = _SIZERATE
+    blksize = _BLKSIZE
+    size = int(ceil(fileinfo.size / 100.0 * rate))
+    if blksize < size:
+        size -= size % blksize
+    return size // 2
 
 
 def _sidesum(fileinfo):
-    return sidesum(fileinfo.path, _sidesize(fileinfo))
+    chunksize = _chksize(fileinfo)
+    hashsums = sidesum(fileinfo.path, chunksize)
+    return hashsums
 
 
-def _parse(duplist, func, onerror, dupdict=None, errlist=None):
-    if dupdict is None:
-        dupdict = {}
-    if errlist is None:
-        errlist = []
+def _signature(fileinfo):
+    return signature(fileinfo.path)
 
+
+def _parse(duplist, dupdict, errlist, func, onerror):
     for fileinfo in duplist:
         try:
-            id = func(fileinfo)
+            idkey = func(fileinfo)
 
         except SkipException:
             pass
 
+        except (IOError, OSError) as exc:
+            onerror(exc, fileinfo.path)
+
+            if exc.errno == errno.ENOENT:
+                continue
+
+            errlist.append(fileinfo)
+
         except Exception as exc:
-            if onerror is not None:
-                onerror(exc, fileinfo.path)
+            onerror(exc, fileinfo.path)
+
             if not exists(fileinfo.path):
                 continue
+
             errlist.append(fileinfo)
 
         else:
-            append_to_dict(dupdict, id, fileinfo)
+            append_to_dict(dupdict, idkey, fileinfo)
 
     return dupdict, errlist
 
 
-def _hashfilter(filtertype, dupinfo, onerror):
-    if filtertype is FilterType.HASH:
-        func = _checksum
-        minsize = SIGNATURE_SIZE + 1
-        minlen = 3
+def _rulefilter(dupinfo, onerror, fltrtype, rule, func):
+    dups_it = _iterdups(dupinfo)
 
-    elif filtertype is FilterType.RULE:
-        func = _sidesum
-        minsize = SIGNATURE_SIZE + 1
-        minlen = 2
+    for dupobj, dupkey, duplist in dups_it:
+        try:
+            rule(duplist)
 
-    else:
-        func = _signature
-        minsize = 1
-        minlen = 2
-
-    for dupobj, dupkey, duplist in _iterdups(dupinfo):
-        if len(duplist) < minlen:
+        except SkipException:
             continue
 
-        # NOTE: This check can return true one time only; should be optimized?
-        if duplist[0].size < minsize:
-            continue
-
-        dupdict, errlist = _parse(duplist, func, onerror)
-        DupInfo(filtertype, dupdict, errlist, dupobj, dupkey)
+        dupdict, errlist = _parse(duplist, {}, [], func, onerror)
+        DupInfo(fltrtype, dupdict, errlist, dupobj, dupkey)
 
 
-def _binaryfilter(filtertype, dupinfo, onerror):
-    for dupobj, dupkey, duplist in _iterdups(dupinfo):
+def _binaryfilter(dupinfo, onerror):
+    dups_it = _iterdups(dupinfo)
+
+    for dupobj, dupkey, duplist in dups_it:
         try:
             file0, file1 = duplist
         except ValueError:
@@ -143,35 +152,55 @@ def _binaryfilter(filtertype, dupinfo, onerror):
                 dupdict = {}
             errlist = []
 
-        except IOError as exc:
-            if onerror is not None:
-                onerror(exc, exc.filename)
+        except (IOError, OSError) as exc:
+            onerror(exc, abspath(exc.filename))
 
             dupdict = {}
-            if exists(file0.path) and exists(file1.path):
+            if exc.errno == errno.ENOENT:
                 errlist = duplist
             else:
                 errlist = []
 
-        DupInfo(filtertype, dupdict, errlist, dupobj, dupkey)
+        DupInfo(FilterType.BINARY, dupdict, errlist, dupobj, dupkey)
 
 
-def _stfilter(filtertype, dupinfo, onerror):
-    for dupobj, dupkey, duplist in _iterdups(dupinfo):
-        dupdict, errlist = _parse(duplist, lambda f: f[filtertype], onerror)
-        DupInfo(filtertype, dupdict, errlist, dupobj, dupkey)
+def _typefilter(dupinfo, onerror, fltrtype):
+    dups_it = _iterdups(dupinfo)
+
+    for dupobj, dupkey, duplist in dups_it:
+        dupdict, errlist = _parse(duplist, {}, [], lambda f: f[fltrtype],
+                                  onerror)
+        DupInfo(fltrtype, dupdict, errlist, dupobj, dupkey)
 
 
-def _filter(filtertype, dupinfo, onerror):
-    if filtertype is FilterType.BINARY:
-        _binaryfilter(filtertype, dupinfo, onerror)
+def _signrule(duplist):
+    # if len(duplist) < 2:
+        # raise SkipException
+    size = duplist[0].size
+    path = duplist[0].path
+    if not size or _LOWSIZE < size < _MINSIZE:
+        raise SkipException
+    if islink(path):
+        raise SkipException
 
-    elif filtertype in (FilterType.HASH, FilterType.RULE,
-                        FilterType.SIGNATURE):
-        _hashfilter(filtertype, dupinfo, onerror)
 
-    else:
-        _stfilter(filtertype, dupinfo, onerror)
+def _siderule(duplist):
+    # if len(duplist) < 2:
+        # raise SkipException
+    size = duplist[0].size
+    path = duplist[0].path
+    if size < _BIGSIZE:
+        raise SkipException
+    if islink(path):
+        raise SkipException
+
+
+def _hashrule(duplist):
+    if len(duplist) < 3:
+        raise SkipException
+    size = duplist[0].size
+    if not size:
+        raise SkipException
 
 
 def _sizecheck(size, minsize, scanempties):
@@ -225,12 +254,15 @@ def _names_to_info(names, onerror):
         try:
             fileinfo = FileInfo(filename)
 
-        except IOError as exc:
-            if onerror is not None:
-                onerror(exc, filename)
-            if not exists(filename):
+        except (IOError, OSError) as exc:
+            filepath = abspath(filename)
+
+            onerror(exc, filepath)
+
+            if exc.errno == errno.ENOENT:
                 continue
-            scnerrlist.append(filename)
+
+            scnerrlist.append(filepath)
 
         else:
             filelist.append(fileinfo)
@@ -247,12 +279,15 @@ def _entries_to_info(entries, onerror):
             st = entry.stat(follow_symlinks=False)
             fileinfo = FileInfo(entry.name, entry.path, st)
 
-        except IOError as exc:
-            if onerror is not None:
-                onerror(exc, entry.path)
-            if not exists(entry.path):
+        except (IOError, OSError) as exc:
+            filepath = entry.path
+
+            onerror(exc, filepath)
+
+            if exc.errno == errno.ENOENT:
                 continue
-            scnerrlist.append(entry.path)
+
+            scnerrlist.append(filepath)
 
         else:
             filelist.append(fileinfo)
@@ -260,49 +295,31 @@ def _entries_to_info(entries, onerror):
     return filelist, scnerrlist
 
 
-def _filescan(filenames, args, onerror,
-              dupdict=None, errlist=None, scnerrlist=None):
-
-    if dupdict is None:
-        dupdict = {}
-    if errlist is None:
-        errlist = []
-    if scnerrlist is None:
-        scnerrlist = []
+def _filescan(filenames, dupdict, errlist, scnerrlist, scnargs, onerror):
 
     filelist, _scnerrlist = _names_to_info(filenames, onerror)
     scnerrlist.extend(_scnerrlist)
 
     def check(fileinfo):
-        return _filecheck(fileinfo, *args)
+        return _filecheck(fileinfo, *scnargs)
 
-    _parse(filelist, check, onerror, dupdict, errlist)
+    _parse(filelist, dupdict, errlist, check, onerror)
 
     return dupdict, errlist, scnerrlist
 
 
-def _dirscan(dirnames, args, onerror, followlinks, scanlinks,
-             dupdict=None, errlist=None, scnerrlist=None):
-    seen = set()
+def _dirscan(dirnames, dupdict, errlist, scnerrlist,
+             scnargs, onerror, followlinks, scanlinks):
 
-    if dupdict is None:
-        dupdict = {}
-    if errlist is None:
-        errlist = []
-    if scnerrlist is None:
-        scnerrlist = []
-
-    if onerror is not None:
-        def callback(exc):
-            onerror(exc, exc.filename)
-            scnerrlist.append(exc.filename)
-    else:
-        def callback(exc):
-            scnerrlist.append(exc.filename)
+    def callback(exc):
+        filepath = abspath(exc.filename)
+        onerror(exc, filepath)
+        scnerrlist.append(filepath)
 
     def check(fileinfo):
-        return _filecheck(fileinfo, *args)
+        return _filecheck(fileinfo, *scnargs)
 
+    seen = set()
     for dirname in dirnames:
         walk_it = walk(dirname, callback, followlinks, seen)
 
@@ -313,146 +330,99 @@ def _dirscan(dirnames, args, onerror, followlinks, scanlinks,
             filelist, _scnerrlist = _entries_to_info(files, onerror)
             scnerrlist.extend(_scnerrlist)
 
-            _parse(filelist, check, onerror, dupdict, errlist)
+            _parse(filelist, dupdict, errlist, check, onerror)
 
     return dupdict, errlist, scnerrlist
 
 
-def _filterdups(paths, minsize, include, exclude, recursive, followlinks,
-                scanlinks, scanempties, scansystem, scanarchived, scanhidden,
-                onerror):
+def filterdups(fltrtype, dupinfo, onerror):
 
-    cc = compilecards
-    included_match = cc(include).match if include else lambda p: True
-    excluded_match = cc(exclude).match if exclude else lambda p: False
+    if fltrtype is FilterType.SIGNATURE:
+        _rulefilter(dupinfo, onerror, fltrtype, _signrule, _signature)
 
-    args = (minsize, included_match, excluded_match, scanempties, scansystem,
-            scanarchived, scanhidden)
+    elif fltrtype is FilterType.RULE:
+        # NOTE: Just a one-pass sidesum check for now...
+        _rulefilter(dupinfo, onerror, fltrtype, _siderule, _sidesum)
 
-    dirnames, filenames, linknames = _splitpaths(paths, followlinks)
+    elif fltrtype is FilterType.HASH:
+        _rulefilter(dupinfo, onerror, fltrtype, _hashrule, _checksum)
+
+    elif fltrtype is FilterType.BINARY:
+        _binaryfilter(dupinfo, onerror)
+
+    else:
+        _typefilter(dupinfo, onerror, fltrtype)
+
+    return dupinfo
+
+
+def purgedups(dupinfo, trash, ondel, onerror):
+    delduplist = []
+    delerrlist = []
+
+    sort_key = attrgetter('index', 'path')
+    dups_it = _iterdups(dupinfo)
+
+    for dupobj, dupkey, duplist in dups_it:
+
+        duplicates = sorted(duplist, key=sort_key)[1:]
+
+        for fileinfo in duplicates:
+            filepath = fileinfo.path
+
+            try:
+                ondel(filepath)
+            except SkipException:
+                continue
+
+            try:
+                remove(filepath, trash)
+
+            except (IOError, OSError) as exc:
+                onerror(exc, filepath)
+
+                if exc.errno == errno.ENOENT:
+                    continue
+
+                delerrlist.append(filepath)
+
+            except Exception as exc:
+                onerror(exc, filepath)
+
+                if not exists(filepath):
+                    continue
+
+                delerrlist.append(filepath)
+
+            else:
+                delduplist.append(filepath)
+
+    return delduplist, delerrlist
+
+
+def scandups(paths, minsize, matchers, recursive, followlinks, scanlinks,
+             flags, onerror):
+
+    dupdict = {}
+    errlist = []
+    scnerrlist = []
+
+    scnargs = (minsize,) + matchers + flags
+
+    splitted_paths = _splitpaths(paths, followlinks)
+    dirnames, filenames, linknames, _, errnames = splitted_paths
+
+    scnerrlist.extend(errnames)
 
     if scanlinks:
         filenames += linknames
 
-    dupdict, errlist, scnerrlist = _filescan(filenames, args, onerror)
+    _filescan(filenames, dupdict, errlist, scnerrlist, scnargs, onerror)
 
     if recursive:
-        _dirscan(dirnames, args, onerror, followlinks, scanlinks,
-                 dupdict, errlist, scnerrlist)
+        _dirscan(dirnames, dupdict, errlist, scnerrlist, scnargs, onerror,
+                 followlinks, scanlinks)
 
     dupinfo = DupInfo(FilterType.ID, dupdict, errlist)
 
     return dupinfo, scnerrlist
-
-
-def _cpuprocess(dupinfo, comparename, comparemtime, comparemode, onerror,
-                notify):
-    if comparemode:
-        notify('filtering files by permission mode')
-        _filter(FilterType.MODE, dupinfo, onerror)
-
-    if comparemtime:
-        notify('filtering files by modification time')
-        _filter(FilterType.MTIME, dupinfo, onerror)
-
-    if comparename:
-        notify('filtering files by name')
-        _filter(FilterType.NAME, dupinfo, onerror)
-
-
-def _ioprocess(dupinfo, onerror, notify):
-    notify('filtering files by signature')
-    _filter(FilterType.SIGNATURE, dupinfo, onerror)
-
-    notify('filtering files by rule')
-    if SIDESUM_PERCENT < 100:
-        _filter(FilterType.RULE, dupinfo, onerror)
-    else:
-        notify('skipped rule filtering', LogLevel.WARNING)
-
-    notify('filtering files by hash')
-    _filter(FilterType.HASH, dupinfo, onerror)
-
-    notify('filtering files by content')
-    _filter(FilterType.BINARY, dupinfo, onerror)
-
-    _cache.optimize()
-
-
-def _process(dupinfo, kwgs):
-    notify = kwgs['notify']
-    notify('preparing to process')
-
-    comparename = kwgs['comparename']
-    comparemtime = kwgs['comparemtime']
-    comparemode = kwgs['comparemode']
-    onerror = kwgs['onerror']
-
-    _cpuprocess(dupinfo, comparename, comparemtime, comparemode, onerror,
-                notify)
-    _ioprocess(dupinfo, onerror, notify)
-
-
-def _scan(paths, kwgs):
-    notify = kwgs['notify']
-    notify('preparing to scan')
-
-    minsize = kwgs['minsize']
-    include = kwgs['include']
-    exclude = kwgs['exclude']
-    recursive = kwgs['recursive']
-    followlinks = kwgs['followlinks']
-    scanlinks = kwgs['scanlinks']
-    scanempties = kwgs['scanempties']
-    scansystem = kwgs['scansystem']
-    scanarchived = kwgs['scanarchived']
-    scanhidden = kwgs['scanhidden']
-    onerror = kwgs['onerror']
-
-    notify('scanning for similar files')
-    dupinfo, scnerrlist = _filterdups(
-        paths, minsize, include, exclude, recursive, followlinks, scanlinks,
-        scanempties, scansystem, scanarchived, scanhidden, onerror)
-
-    return dupinfo, scnerrlist
-
-
-def _notify(text, level=LogLevel.INFO, progress=None):
-    pass
-
-
-def _find(paths, minsize=DEFAULT_MINSIZE, include=None, exclude=None,
-          comparename=False, comparemtime=False, comparemode=False,
-          recursive=True, followlinks=False,
-          scanlinks=False, scanempties=False,
-          scansystem=True, scanarchived=True, scanhidden=True,
-          onerror=None, notify=_notify):
-
-    if not paths:
-        raise ValueError('Paths must not be empty')
-
-    kwgs = locals()
-    kwgs.pop('paths')
-
-    dupinfo, scnerrlist = _scan(paths, kwgs)
-
-    _process(dupinfo, kwgs)
-
-    notify('finalizing results')
-    return dupinfo, scnerrlist
-
-
-@from_iterable
-def find(*paths, **kwargs):
-    dupinfo, scnerrlist = _find(paths, **kwargs)
-    return ResultInfo(dupinfo, scnerrlist)
-
-
-# @from_iterable
-# def purge(*paths, **kwargs):
-    # trash = kwargs.pop('trash', True)
-    # ondel = kwargs.pop('trash', None)
-
-    # dupinfo, scnerrlist = _find(paths, **kwargs)
-
-    # raise NotImplementedError
