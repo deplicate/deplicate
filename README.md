@@ -34,37 +34,41 @@ Status
 Description
 -----------
 
+**deplicate** is an high-performance multi-filter duplicate file finder
+written in Pure Python with low memory impact and several advanced features.
+
 Use **deplicate** to find out all the duplicated files in one or more
 directories, you can also scan a bunch of files directly.
+Latest releases let you to delete the founded duplicates or apply a custom
+action on them when purging.
 
-**deplicate** is written in Pure Python and requires just a couple
-of dependencies to work fine, depending on your system.
-
-From what all we know, it's the most advanced and fastest duplicates finder
-tool for Python, nowadays.
+_From what we know, it's the most complete and fastest duplicates finder tool
+for Python, nowadays._
 
 
 Features
 --------
 
 - [x] Optimized for speed
-- [x] N-tree layout for low memory consumation
+- [x] N-tree layout for very low memory usage
 - [x] Multi-threaded (partially)
 - [x] Raw drive data access to maximize I/O performances (Unix only)
 - [x] xxHash algorithm for fast file identification
 - [x] File size and signature checking for quick duplicate exclusion
-- [x] Extended file attributes scanning
+- [x] File extended attributes scanning
 - [x] Multi-filtering
 - [x] Full error handling
 - [x] Unicode decoding
 - [x] Safe from recursion loop
 - [ ] SSD detection (implemented, but not yet used)
-- [ ] Support for moving duplicates to trash/recycle bin
-      (implemented, but not yet used)
+- [x] Support for moving dulicates to trash/recycle bin
+- [x] Dulicates deletion support
+- [x] Deletion handling
 - [x] Command Line Interface (https://github.com/vuolter/deplicate-cli)
-- [x] Structured results
+- [x] Unified structured results
 - [ ] Graphical User Interface
 - [ ] Incremental file chunk checking
+- [ ] Duplicate directory recognition
 - [ ] Multi-processing
 - [ ] Fully documented
 - [ ] PyPy support
@@ -89,8 +93,19 @@ If the above commands fail, consider installing it with the option
     pip install --user deplicate
 
 > **Note:**
-> You can install **deplicate** with its _Command Line Interface_ typing:
+> You can install **deplicate** with its _Command Line Interface_ typing
 > `pip install deplicate[cli]`
+
+If in your system missing the command `pip`, but you're sure you have installed
+the [Python Interpreter](https://www.python.org) and the package `setuptools`
+(>=20.8.1), you can try to install **deplicate** from the sources, in this way:
+
+1. Get the latest tarball of the source code in format
+[ZIP](https://github.com/vuolter/deplicate/archive/master.zip) or
+[TAR](https://github.com/vuolter/deplicate/archive/master.tar.gz).
+2. Extract the downloaded archive.
+3. From the extracted path, launch the command
+`python setup.py install`.
 
 
 Usage

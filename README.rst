@@ -8,6 +8,8 @@ Table of contents
 -  `Features`_
 -  `Installation`_
 -  `Usage`_
+-  `Quick Examples`_
+-  `Advanced Examples`_
 -  `API Reference`_
 -  `Properties`_
 -  `Methods`_
@@ -35,7 +37,7 @@ Features
 -  [x] Error handling
 -  [x] Unicode decoding
 -  [x] Safe from recursion loop
--  [x] SSD detection
+-  [ ] SSD detection
 -  [ ] Multi-processing
 -  [ ] Fully documented
 -  [ ] PyPy support
@@ -76,19 +78,52 @@ If the above commands fail, consider installing it with the option
 Usage
 -----
 
-To find the duplicates, import in your python script the new available
-module ``duplicate`` and call its function ``find``:
+Import in your python script the new available module ``duplicate`` and
+call its function ``find``.
+
+Quick Examples
+~~~~~~~~~~~~~~
+
+    **Note:** By default directory paths are scanned recursively.
+
+    **Note:** By default files smaller than **100 MiB** are not scanned.
+
+Scan a single directory for duplicates:
 
 ::
 
     import duplicate
 
-    entries = ['/path/to/dir1', '/path/to/dir2', '/path/to/file1']
+    duplicate.find('/path/to/dir')
 
-    duplicate.find(entries, recursive=True)
+Scan more directories together:
 
-Resulting output is a list of lists of file paths, where each list
-groups all the same files:
+::
+
+    import duplicate
+
+    duplicate.find('/path/to/dir1', '/path/to/dir2', '/path/to/dir3')
+
+Scan from iterable:
+
+::
+
+    import duplicate
+
+    iterable = ['/path/to/dir1', '/path/to/dir2', '/path/to/dir3']
+
+    duplicate.find.from_iterable(iterable)
+
+Scan ignoring the minimum file size threshold:
+
+::
+
+    import duplicate
+
+    duplicate.find('/path/to/dir', minsize=0)
+
+Resulting output will be always a list of lists of file paths, where
+each list collects together all the same files (aka. the duplicates):
 
 ::
 
@@ -97,9 +132,52 @@ groups all the same files:
         ['/path/to/dir2/file3', '/path/to/dir2/subdir1/file3']
     ]
 
-**Note:** Resulting file paths are in canonical representation.
+**Note:** File paths are returned in canonical form.
 
-**Note:** Resulting lists are sorted in descending order by length.
+**Note:** Lists of file paths are sorted in descending order by
+length.
+
+Advanced Examples
+~~~~~~~~~~~~~~~~~
+
+Scan single files, **not-recursively**:
+
+::
+
+    import duplicate
+
+    duplicate.find('/path/to/file1', '/path/to/file2', '/path/to/dir1',
+                   recursive=False)
+
+**Note:** In *not-recursive mode*, like the case above, directory
+paths are simply ignored.
+
+Scan from iterable checking file names and hidden files:
+
+::
+
+    import duplicate
+
+    iterable = ['/path/to/dir1', '/path/to/file1']
+
+    duplicate.find.from_iterable(iterable, comparename=True, scanhidden=True)
+
+Scan excluding python files:
+
+::
+
+    import duplicate
+
+    duplicate.find('/path/to/dir', exclude="*.py")
+
+Scan including symbolic links of files:
+
+::
+
+    import duplicate
+
+    duplicate.find('/path/to/file1', '/path/to/file2', '/path/to/file3',
+                   scanlinks=True)
 
 API Reference
 -------------
@@ -108,15 +186,15 @@ Properties
 ~~~~~~~~~~
 
 -  duplicate.\ **DEFAULT\_MINSIZE**
--  **Description**: Default minimum file size in bytes.
+-  **Description**: Default minimum file size in Bytes.
 -  **Value**: ``102400``
 
 -  duplicate.\ **DEFAULT\_SIGNSIZE**
--  **Description**: Default file signature size in bytes.
+-  **Description**: Default file signature size in Bytes.
 -  **Value**: ``512``
 
 -  duplicate.\ **MAX\_BLKSIZES\_LEN**
--  **Description**: Default maximum number of cached block size values.
+-  **Description**: Default maximum number of cached block sizes.
 -  **Value**: ``128``
 
 Methods
@@ -128,15 +206,15 @@ Methods
 -  **Parameters**: None.
 
 -  duplicate.\ **find**\ (
-      ``paths, minsize=None, include=None, exclude=None, comparename=False,``
-      ``comparemtime=False, compareperms=False, recursive=True,``
-      ``followlinks=False, scanlinks=False, scanempties=False,``
-      ``scansystems=True, scanarchived=True, scanhidden=True, signsize=None``)
+   ``paths, minsize=None, include=None, exclude=None, comparename=False,``
+   ``comparemtime=False, compareperms=False, recursive=True, followlinks=False,``
+   ``scanlinks=False, scanempties=False, scansystems=True, scanarchived=True,``
+   ``scanhidden=True, signsize=None, onerror=None``)
 -  **Description**: Find duplicate files.
 -  **Return**: Nested lists of paths of duplicate files.
 -  **Parameters**:
 
-   -  ``paths`` -- Iterable of directory or file paths.
+   -  ``paths`` -- Iterable of directory and file paths.
    -  ``minsize`` -- *(optional)* Minimum size of files to include in
       scanning (default to ``DEFAULT_MINSIZE``).
    -  ``include`` -- *(optional)* Wildcard pattern of files to include in
@@ -154,13 +232,19 @@ Methods
    -  ``scansystems`` -- *(optional)* Scan OS files.
    -  ``scanarchived`` -- *(optional)* Scan archived files.
    -  ``scanhidden`` -- *(optional)* Scan hidden files.
-   -  ``signsize`` -- *(optional)* Size of bytes to read from file as
+   -  ``signsize`` -- *(optional)* Size of Bytes to read from file as
       signature (default to ``DEFAULT_SIGNSIZE``).
+   -  ``onerror`` -- *(optional)* Callback function called with two
+      arguments, ``filename`` and ``exception``, when an error occurs
+      during file scanning or processing.
+
 
 .. _Description: #description
 .. _Features: #features
 .. _Installation: #installation
 .. _Usage: #usage
+.. _Quick Examples: #quick-examples
+.. _Advanced Examples: #advanced-examples
 .. _API Reference: #api-reference
 .. _Properties: #properties
 .. _Methods: #methods
