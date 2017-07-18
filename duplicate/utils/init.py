@@ -18,13 +18,6 @@ def from_iterable(func):
     return func
 
 
-def append_to_dict(root, key, value):
-    if key in root:
-        root[key].append(value)
-    else:
-        root[key] = [value]
-
-
 def compilecards(wildcards):
     translate = fnmatch.translate
 

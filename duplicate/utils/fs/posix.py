@@ -3,7 +3,6 @@
 from __future__ import absolute_import
 
 import stat
-
 from os import lstat, statvfs
 
 from ..init import compilecards

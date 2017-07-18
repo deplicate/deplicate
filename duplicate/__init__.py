@@ -11,15 +11,15 @@
 from __future__ import absolute_import
 
 from .core import cache
-from .deplicate import Deplicate, _dummy_notify, _dummy_ondel, _dummy_onerror
+from .deplicate import Deplicate
 from .structs import SkipException
 from .utils import from_iterable
 
 
 @from_iterable
 def find(*paths, **kwargs):
-    onerror = kwargs.pop('onerror', _dummy_onerror)
-    notify = kwargs.pop('notify', _dummy_notify)
+    onerror = kwargs.pop('onerror')
+    notify = kwargs.pop('notify')
 
     d = Deplicate(paths, **kwargs)
     d.find(onerror, notify)
@@ -30,9 +30,9 @@ def find(*paths, **kwargs):
 @from_iterable
 def purge(*paths, **kwargs):
     trash = kwargs.pop('trash', True)
-    onerror = kwargs.pop('onerror', _dummy_onerror)
-    ondel = kwargs.pop('ondel', _dummy_ondel)
-    notify = kwargs.pop('notify', _dummy_notify)
+    onerror = kwargs.pop('onerror')
+    ondel = kwargs.pop('ondel')
+    notify = kwargs.pop('notify')
 
     d = Deplicate(paths, **kwargs)
     d.purge(trash, ondel, onerror, notify)

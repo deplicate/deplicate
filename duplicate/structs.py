@@ -10,9 +10,9 @@ from operator import attrgetter
 from stat import S_IFMT, S_IMODE
 from threading import RLock
 
-# from ssd import is_ssd
-
 from .utils.fs import blkdevice, blksize
+
+# from ssd import is_ssd
 
 
 class SkipException(Exception):
@@ -28,7 +28,7 @@ class FilterType(IntEnum):
     NAME = 3
     DIR = 4
     MODE = 5
-    IFMT = 6
+    INODE = 6
     DEV = 7
     MTIME = 8
     SIZE = 9
@@ -44,14 +44,14 @@ _counter = 0  # NOTE: No multiprocessing proof.
 _CacheInfo = namedtuple('CacheInfo', 'blkdev blksize')
 _DupInfo = namedtuple('DupInfo', 'filter dups errors parent')
 _FileInfo = namedtuple('FileInfo',
-                       'index id path name dir mode ifmt dev mtime size')
+                       'index id path name dir mode inode dev mtime size')
 _ResultInfo = namedtuple('ResultInfo',
                          'dups deldups duperrors scanerrors delerrors')
 
 
 class Cache(object):
 
-    __slots__ = ['__dev', '__info', 'maxlen', 'lock']
+    __slots__ = ['__dev', '__info', 'lock', 'maxlen']
 
     DEFAULT_MAXLEN = 128
 
@@ -61,17 +61,13 @@ class Cache(object):
         self.maxlen = int(maxlen)
         self.lock = RLock()
 
-    def _get(self, blockdevice, path):
-        blocksize = blksize(path)
-        # ssdflag = is_ssd(path)
-        # return _CacheInfo(blockdevice, blocksize, ssdflag)
-        return _CacheInfo(blockdevice, blocksize)
-
     def get(self, fileinfo):
         blockdevice = self.__dev.setdefault(
-            fileinfo.dev, blkdevice(fileinfo.path))
+            fileinfo.dev,
+            blkdevice(fileinfo.path))
         value = self.__info.setdefault(
-            blockdevice, self._get(blockdevice, fileinfo.path))
+            blockdevice,
+            _CacheInfo(blockdevice, blksize(fileinfo.path)))
         return value
 
     def clear(self):
@@ -129,29 +125,36 @@ class FileInfo(_FileInfo):
 
     __slots__ = []
 
-    def __new__(cls, name, path=None, st=None):
-        if path is None:
-            path = os.path.abspath(name)
-        if st is None:
-            st = os.lstat(name)
+    @classmethod
+    def __new(cls, name, path, st):
 
-        dir, name = os.path.split(name)
-        mode = S_IMODE(st.st_mode)
-        ifmt = S_IFMT(st.st_mode)
+        dirname, filename = os.path.split(name)
+        mode = st.st_mode
+        ifmt = S_IFMT(mode)
+        inode = st.st_ino
         dev = st.st_dev
         try:
             mtime = st.st_mtime_ns
         except AttributeError:
             mtime = st.st_mtime
         size = st.st_size
+        fileid = (ifmt, size)
 
         global _counter
         _counter += 1
-        keyid = (ifmt, size)
 
         new = super(FileInfo, cls).__new__
-        return new(cls, _counter, keyid, path, name, dir, mode, ifmt, dev,
-                   mtime, size)
+        return new(cls, _counter, fileid, path, filename, dirname, mode, inode,
+                   dev, mtime, size)
+
+    def __new__(cls, name, path=None, st=None):
+        if path is None:
+            path = os.path.abspath(name)
+
+        if st is None:
+            st = os.lstat(name)
+
+        return cls.__new(name, path, st)
 
 
 class ResultInfo(_ResultInfo):
@@ -180,10 +183,10 @@ class ResultInfo(_ResultInfo):
 
     @staticmethod
     def __parse_dups(dupinfo):
-        sort_key = attrgetter('index', 'path')
+        sort_fn = attrgetter('index', 'path')
         dups_it = ResultInfo.__iter_dups(dupinfo)
 
-        dups = [tuple(sorted(duplist, key=sort_key))
+        dups = [tuple(sorted(duplist, key=sort_fn))
                 for dupobj, dupkey, duplist in dups_it if duplist]
 
         dups.sort(key=len, reverse=True)
@@ -191,10 +194,10 @@ class ResultInfo(_ResultInfo):
 
     @staticmethod
     def __parse_errors(dupinfo):
-        sort_key = attrgetter('index', 'path')
+        sort_fn = attrgetter('index', 'path')
         errors_it = ResultInfo.__iter_errors(dupinfo)
 
-        errors = [tuple(sorted(errlist, key=sort_key))
+        errors = [tuple(sorted(errlist, key=sort_fn))
                   for errlist in errors_it if errlist]
 
         errors.sort(key=len, reverse=True)

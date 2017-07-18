@@ -2,11 +2,10 @@
 
 from __future__ import absolute_import
 
-from .posix import (blksize, has_archive_attribute,
-                    has_hidden_attribute as _has_hidden_attribute,
-                    is_archived)
-from .common import fsdecode
 from ..init import compilecards
+from .common import fsdecode
+from .posix import has_hidden_attribute as _has_hidden_attribute
+from .posix import has_archive_attribute, is_archived
 
 
 WILDCARDS = (

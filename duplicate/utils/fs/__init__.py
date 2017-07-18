@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import
 
+import sys
+
 from .common import *
 
 if os.name == 'nt':

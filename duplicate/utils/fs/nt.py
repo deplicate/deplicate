@@ -14,8 +14,8 @@ import winerror
 import win32api
 import win32file
 
-from .common import fullpath
 from ..init import compilecards
+from .common import fullpath
 
 
 WILDCARDS = (
