@@ -49,7 +49,6 @@ setup(
         'scandir;python_version<"3.5"',
         'send2trash',
         # 'ssd',
-        'wmi;os_name=="nt"',
         'xxhash>=1'],
     setup_requires=['setuptools>=20.8.1'],
     extras_require={'cli': ['deplicate-cli']},
