@@ -50,25 +50,26 @@ Features
 --------
 
 - [x] Optimized for speed
-- [x] N-tree layout for very low memory usage
+- [x] N-tree layout for low memory consumption
 - [x] Multi-threaded (partially)
 - [x] Raw drive data access to maximize I/O performances (Unix only)
 - [x] xxHash algorithm for fast file identification
 - [x] File size and signature checking for quick duplicate exclusion
-- [x] File extended attributes scanning
+- [x] Extended file attributes scanning
 - [x] Multi-filtering
 - [x] Full error handling
 - [x] Unicode decoding
-- [x] Safe from recursion loop
-- [ ] SSD detection (implemented, but not yet used)
+- [x] Safe from directory recursion loop
+- [ ] SSD detection
+- [x] Dulicates purging
 - [x] Support for moving dulicates to trash/recycle bin
-- [x] Dulicates deletion support
-- [x] Deletion handling
+- [x] Action handling over deletion
 - [x] Command Line Interface (https://github.com/vuolter/deplicate-cli)
-- [x] Unified structured results
+- [x] Unified structured result
 - [ ] Graphical User Interface
 - [ ] Incremental file chunk checking
-- [ ] Duplicate directory recognition
+- [ ] Hard link scanning
+- [ ] Duplicate directories recognition
 - [ ] Multi-processing
 - [ ] Fully documented
 - [ ] PyPy support
