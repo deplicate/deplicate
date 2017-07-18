@@ -8,7 +8,7 @@ setup(
     description='Advanced Duplicate File Finder for Python. '
                 'Nothing is impossible to solve.',
     long_description=open('README.rst').read(),
-    keywords='duplicates dups',
+    keywords='duplicate duplicatefinder duplicates dups',
     url='https://github.com/vuolter/deplicate',
     download_url='https://github.com/vuolter/deplicate/releases',
     author='Walter Purcaro',
@@ -48,8 +48,10 @@ setup(
         'pypiwin32>=154;os_name=="nt"',
         'scandir;python_version<"3.5"',
         'send2trash',
+        # 'ssd',
         'wmi;os_name=="nt"',
         'xxhash>=1'],
+    setup_requires=['setuptools>=20.8.1'],
     extras_require={'cli': ['deplicate-cli']},
     python_requires='>=2.6,!=3.0,!=3.1,!=3.2',
     zip_safe=True)
