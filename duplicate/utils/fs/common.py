@@ -42,6 +42,20 @@ def fsdecode(path):
     return upath
 
 
+def _stat(path):
+    try:
+        mode = os.lstat(path).st_mode
+
+    except AttributeError:
+        mode = os.stat(path).st_mode
+        link = False
+
+    else:
+        link = S_ISLNK(mode)
+
+    return mode, link
+
+
 def splitpaths(iterable, followlinks=False):
     dirs = []
     files = []
@@ -51,15 +65,7 @@ def splitpaths(iterable, followlinks=False):
 
     for path in iterable:
         try:
-            try:
-                mode = os.lstat(path).st_mode
-
-            except AttributeError:
-                mode = os.stat(path).st_mode
-                symlink = False
-
-            else:
-                symlink = S_ISLNK(mode)
+            mode, symlink = _stat(path)
 
         except OSError:
             unexs.append(path)
@@ -68,6 +74,7 @@ def splitpaths(iterable, followlinks=False):
             if S_ISDIR(mode):
                 if not followlinks and symlink:
                     continue
+                dirs.append(path)
 
             elif S_ISREG(mode):
                 (links if symlink else files).append(path)
@@ -176,62 +183,71 @@ def blkdevice(path):
     return block
 
 
+def _readflags(sequential, direct):
+    flags = os.O_RDONLY
+    try:
+        flags |= os.O_BINARY
+        if sequential is not None:
+            flags |= os.O_SEQUENTIAL if sequential else os.O_RANDOM
+
+    except AttributeError:
+        pass
+
+    try:
+        if direct:
+            flags |= os.O_DIRECT
+            read = directio.read
+        else:
+            raise AttributeError
+
+    except AttributeError:
+        read = os.read
+
+    return read, flags
+
+
+def _read(fd, fn, sequential, direct):
+    try:
+        if direct:
+            if sequential is not None:
+                fadv_sequential = os.POSIX_FADV_SEQUENTIAL
+                fadv_random = os.POSIX_FADV_RANDOM
+                advice = fadv_sequential if sequential else fadv_random
+                os.posix_fadvise(fd, 0, 0, advice)
+
+            def read(buf):
+                data = fn(fd, buf)
+                os.posix_fadvise(fd, read.offset, buf, os.POSIX_FADV_DONTNEED)
+                read.offset += buf
+                return data
+
+            # NOTE: `nonlocal` statement is not available in Python 2.
+            read.offset = 0
+
+        else:
+            raise AttributeError
+
+    except AttributeError:
+        def read(buf):
+            return fn(fd, buf)
+
+    return read, fd
+
+
 @contextmanager
 def readopen(filename, sequential=None, direct=False):
+    read, flags = _readflags(sequential, direct)
+
+    fd = os.open(filename, flags)
     try:
-        flags = os.O_RDONLY
-        try:
-            flags |= os.O_BINARY
-            if sequential is not None:
-                flags |= os.O_SEQUENTIAL if sequential else os.O_RANDOM
-
-        except AttributeError:
-            pass
-
-        try:
-            if direct:
-                flags |= os.O_DIRECT
-                read = directio.read
-            else:
-                raise AttributeError
-
-        except AttributeError:
-            read = os.read
-
-        fd = os.open(filename, flags)
-        try:
-            if direct:
-                if sequential is not None:
-                    fadv_sequential = os.POSIX_FADV_SEQUENTIAL
-                    fadv_random = os.POSIX_FADV_RANDOM
-                    advice = fadv_sequential if sequential else fadv_random
-                    os.posix_fadvise(fd, 0, 0, advice)
-
-                offset = 0
-
-                def readsize(buf):
-                    try:
-                        return os.read(fd, buf)
-                    finally:
-                        os.posix_fadvise(
-                            fd, offset, buf, os.POSIX_FADV_DONTNEED)
-                        global offset
-                        offset += buf
-            else:
-                raise AttributeError
-
-        except AttributeError:
-            def readsize(buf):
-                return read(fd, buf)
-
-        yield (readsize, fd)
+        yield _read(fd, read, sequential, direct)
 
     finally:
         os.close(fd)
 
 
 def signature(filename):
-    with readopen(filename) as (read, fd):
+    with readopen(filename) as (read, _):
         data = read(261)
     return _xxhash_xxh(data).hexdigest()
 
@@ -282,7 +298,7 @@ def checksum(filename, bufsize):
     x = _xxhash_xxh()
     update = x.update
 
-    with readopen(filename, sequential=True, direct=True) as (read, fd):
+    with readopen(filename, sequential=True, direct=True) as (read, _):
         data = read(bufsize)
         while data:
             update(data)
