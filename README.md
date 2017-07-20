@@ -117,10 +117,11 @@ Import in your script the module `duplicate`.
 
     import duplicate
 
-Call its function `find` if you want to know what are the duplicate files
-or `purge` if you want in addition to remove them.
+Call its function `find` if you want to know what are the duplicate files:
 
     duplicate.find('/path')
+
+Or `purge` if you want in addition to remove them:
 
     duplicate.purge('/path')
 
@@ -194,7 +195,7 @@ Scan ignoring the minimum file size threshold:
 
 ### Advanced Examples
 
-Scan **not-recursively**:
+Scan without recursing directories:
 
     import duplicate
 
@@ -302,13 +303,13 @@ API Reference
       - **Parameters**: None.
 
 - duplicate.`Deplicate`(paths,
-  minsize=`DEFAULT_MINSIZE`,
-  maxsize=`DEFAULT_MAXSIZE`,
-  include=`None`, exclude=`None`,
-  comparename=`False`, comparemtime=`False`, comparemode=`False`,
-  recursive=`True`, followlinks=`False`, scanlinks=`False`,
-  scanempties=`False`,
-  scansystem=`True`, scanarchived=`True`, scanhidden=`True`)
+    minsize=`DEFAULT_MINSIZE`,
+    maxsize=`DEFAULT_MAXSIZE`,
+    include=`None`, exclude=`None`,
+    comparename=`False`, comparemtime=`False`, comparemode=`False`,
+    recursive=`True`, followlinks=`False`, scanlinks=`False`,
+    scanempties=`False`,
+    scansystem=`True`, scanarchived=`True`, scanhidden=`True`)
   - **Description**: Duplicate main class.
   - **Return**: Self instance.
   - **Parameters**:
@@ -354,8 +355,7 @@ API Reference
           `exception` and `filename`, when an error occurs during file
           scanning or filtering.
         - `notify` – _(internal)_ Notifier callback.
-    - `purge`(self, trash=`True`, ondel=`None`, onerror=`None`,
-      notify=`None`):
+    - `purge`(self, trash=`True`, ondel=`None`, onerror=`None`, notify=`None`):
       - **Description**: Find and purge duplicate files.
       - **Return**: None.
       - **Parameters**:
@@ -384,14 +384,14 @@ API Reference
 ### Functions
 
 - duplicate.`find`(*paths,
-  minsize=`duplicate.Deplicate.DEFAULT_MINSIZE`,
-  maxsize=`duplicate.Deplicate.DEFAULT_MAXSIZE`,
-  include=`None`, exclude=`None`,
-  comparename=`False`, comparemtime=`False`, comparemode=`False`,
-  recursive=`True`, followlinks=`False`, scanlinks=`False`,
-  scanempties=`False`,
-  scansystem=`True`, scanarchived=`True`, scanhidden=`True`,
-  onerror=`None`, notify=`None`)
+    minsize=`duplicate.Deplicate.DEFAULT_MINSIZE`,
+    maxsize=`duplicate.Deplicate.DEFAULT_MAXSIZE`,
+    include=`None`, exclude=`None`,
+    comparename=`False`, comparemtime=`False`, comparemode=`False`,
+    recursive=`True`, followlinks=`False`, scanlinks=`False`,
+    scanempties=`False`,
+    scansystem=`True`, scanarchived=`True`, scanhidden=`True`,
+    onerror=`None`, notify=`None`)
   - **Description**: Find duplicate files.
   - **Return**: `duplicate.ResultInfo`.
   - **Parameters**:
@@ -421,14 +421,14 @@ API Reference
     - `notify` – _(internal)_ _(optional)_ Notifier callback.
 
 - duplicate.`purge`(*paths,
-  minsize=`duplicate.Deplicate.DEFAULT_MINSIZE`,
-  maxsize=`duplicate.Deplicate.DEFAULT_MAXSIZE`,
-  include=`None`, exclude=`None`,
-  comparename=`False`, comparemtime=`False`, comparemode=`False`,
-  recursive=`True`, followlinks=`False`, scanlinks=`False`,
-  scanempties=`False`,
-  scansystem=`True`, scanarchived=`True`, scanhidden=`True`,
-  trash=`True`, ondel=`None`, onerror=`None`, notify=`None`)
+    minsize=`duplicate.Deplicate.DEFAULT_MINSIZE`,
+    maxsize=`duplicate.Deplicate.DEFAULT_MAXSIZE`,
+    include=`None`, exclude=`None`,
+    comparename=`False`, comparemtime=`False`, comparemode=`False`,
+    recursive=`True`, followlinks=`False`, scanlinks=`False`,
+    scanempties=`False`,
+    scansystem=`True`, scanarchived=`True`, scanhidden=`True`,
+    trash=`True`, ondel=`None`, onerror=`None`, notify=`None`)
   - **Description**: Find and purge duplicate files.
   - **Return**: `duplicate.ResultInfo`.
   - **Parameters**:
