@@ -6,7 +6,7 @@ import os
 
 from collections import defaultdict
 from contextlib import closing
-from filecmp import cmp
+from filecmp import cmp as filecmp
 from math import ceil
 from multiprocessing.pool import ThreadPool
 from os.path import abspath
@@ -29,7 +29,7 @@ _SIZERATE = 10  #: percentage
 _BLKSIZE = 4 << 10
 _XXHSIZE = _xxhash_xxh().block_size << 11
 
-cache = Cache()
+CACHE = Cache()
 
 
 def _iterdups(dupinfo):
@@ -45,7 +45,7 @@ def _bufsize(fileinfo):
     # NOTE: `stat.st_dev` is always zero in Python 2 under Windows. :(
     if fileinfo.dev:
         try:
-            blocksize = cache.get(fileinfo).blksize
+            blocksize = CACHE.get(fileinfo).blksize
 
         except Exception:
             blocksize = 1
@@ -130,11 +130,11 @@ def _rulefilter(fltrtype, dupinfo, check, rule, onerror, progress):
             progress(len(filelist))
 
 
-def _binarycmp(filelist):
+def _binarycmp(filelist, onerror):
     file0, file1 = filelist
 
     try:
-        if cmp(file0.path, file1.path, shallow=False):
+        if filecmp(file0.path, file1.path, shallow=False):
             dupdict = {True: filelist}
         else:
             dupdict = {}
@@ -162,7 +162,7 @@ def _binaryfilter(fltrtype, dupinfo, onerror, progress):
         if not file0.size:
             continue
 
-        dupdict, errlist = _binarycmp(filelist)
+        dupdict, errlist = _binarycmp(filelist, onerror)
 
         DupInfo(fltrtype, dupdict, errlist, dupobj, dupkey)
 
