@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-from .core import _LITTLESIZE, cache, filterdups, purgedups, scandups
+from .core import cache, filterdups, purgedups, scandups
 from .structs import FilterType, ResultInfo
 from .utils import compilecards
 
@@ -13,8 +13,9 @@ class Deplicate(object):
                  'cmpflags', 'followlinks', 'matchers', 'paths', 'recursive',
                  'result', 'scanlinks', 'scnflags', 'sizes']
 
-    DEFAULT_MINSIZE = _LITTLESIZE
-    DEFAULT_MAXSIZE = 100 << 30  #: bytes
+    #: bytes
+    DEFAULT_MINSIZE = 100 << 10
+    DEFAULT_MAXSIZE = 100 << 30
 
     def __init__(self, paths, minsize=DEFAULT_MINSIZE, maxsize=DEFAULT_MAXSIZE,
                  include=None, exclude=None,

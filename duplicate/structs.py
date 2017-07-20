@@ -7,7 +7,7 @@ import os
 from collections import namedtuple
 from enum import IntEnum
 from operator import attrgetter
-from stat import S_IFMT, S_IMODE
+from stat import S_IFMT
 from threading import RLock
 
 from .utils.fs import blkdevice, blksize
