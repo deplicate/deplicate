@@ -42,7 +42,7 @@ directories, you can also scan a bunch of files directly.
 Latest releases let you to delete the founded duplicates or apply a custom
 action on them when purging.
 
-_From what we know, it's the most complete and fastest duplicates finder tool
+_From what we know, it's the most complete and fastest duplicate finder tool
 for Python, nowadays._
 
 
@@ -63,12 +63,13 @@ Features
 - [ ] SSD detection
 - [x] Dulicates purging
 - [x] Support for moving dulicates to trash/recycle bin
-- [x] Action handling over deletion
+- [x] Custom aation handling over deletion
 - [x] Command Line Interface (https://github.com/vuolter/deplicate-cli)
 - [x] Unified structured result
+- [x] Support posix_fadvise
 - [ ] Graphical User Interface
 - [ ] Incremental file chunk checking
-- [ ] Hard link scanning
+- [ ] Hard-link scanning
 - [ ] Duplicate directories recognition
 - [ ] Multi-processing
 - [ ] Fully documented
@@ -112,22 +113,64 @@ the [Python Interpreter](https://www.python.org) and the package `setuptools`
 Usage
 -----
 
-Import in your python script the new available module `duplicate`
-and call its function `find`.
+Import in your script the module `duplicate`.
 
-### Quick Examples
+    import duplicate
+
+Call its function `find` if you want to know what are the duplicate files
+or `purge` if you want in addition to remove them.
+
+    duplicate.find('/path')
+
+    duplicate.purge('/path')
+
+In both cases, you'll get a `duplicate.ResultInfo` object,
+with following properties:
+- `dups` – Tuples of paths of duplicate files.
+- `deldups` – Tuple of paths of purged duplicate files.
+- `duperrors` – Tuple of paths of files not filtered due errors.
+- `scanerrors` – Tuple of paths of files not scanned due errors.
+- `delerrors` – Tuple of paths of files not purged due errors.
 
 > **Note:**
 > By default directory paths are scanned recursively.
 
 > **Note:**
-> By default files smaller than **100 MiB** are not scanned.
+> By default files smaller than **100 MiB** or bigger than **100 GiB**
+> are not scanned.
 
-Scan a single directory for duplicates:
+> **Note:**
+> File paths are returned in canonical form.
+
+> **Note:**
+> Tuples of duplicate files are sorted in descending order according
+input priority, file modification time and name length.
+
+### Quick Examples
+
+Scan for duplicates a single directory:
 
     import duplicate
 
     duplicate.find('/path/to/dir')
+
+Scan for duplicates two files (at least):
+
+    import duplicate
+
+    duplicate.find('/path/to/file1', '/path/to/file2')
+
+Scan for duplicates a single directory and move them to the trash/recycle bin:
+
+    import duplicate
+
+    duplicate.purge('/path/to/dir')
+
+Scan for duplicates a single directory and delete them:
+
+    import duplicate
+
+    duplicate.purge('/path/to/dir', trash=False)
 
 Scan more directories together:
 
@@ -149,23 +192,9 @@ Scan ignoring the minimum file size threshold:
 
     duplicate.find('/path/to/dir', minsize=0)
 
-Resulting output will be always a list of lists of file paths,
-where each list collects together all the same files (aka. the duplicates):
-
-    [
-        ['/path/to/dir1/file1', '/path/to/file1', '/path/to/dir2/subdir1/file1]',
-        ['/path/to/dir2/file3', '/path/to/dir2/subdir1/file3']
-    ]
-
-> **Note:**
-> File paths are returned in canonical form.
-
-> **Note:**
-> Lists of file paths are sorted in descending order by length.
-
 ### Advanced Examples
 
-Scan single files, **not-recursively**:
+Scan **not-recursively**:
 
     import duplicate
 
@@ -176,59 +205,120 @@ Scan single files, **not-recursively**:
 > In _not-recursive mode_, like the case above, directory paths are simply
 > ignored.
 
-Scan from iterable checking file names and hidden files:
+Scan checking file names and hidden files:
 
     import duplicate
 
-    iterable = ['/path/to/dir1', '/path/to/file1']
+    duplicate.find.from_iterable('/path/to/file1', '/path/to/dir1',
+                                 comparename=True, scanhidden=True)
 
-    duplicate.find.from_iterable(iterable, comparename=True, scanhidden=True)
-
-Scan excluding python files:
+Scan excluding files with extension `.doc`:
 
     import duplicate
 
-    duplicate.find('/path/to/dir', exclude="*.py")
+    duplicate.find('/path/to/dir', exclude="*.doc")
 
-Scan including symbolic links of files:
+Scan including file links:
 
     import duplicate
 
     duplicate.find('/path/to/file1', '/path/to/file2', '/path/to/file3',
                    scanlinks=True)
 
+Scan for duplicates, handling errors with a custom action (printing):
+
+    import duplicate
+
+    def error_callback(exc, filename):
+        print(filename)
+
+    duplicate.find('/path/to/dir', onerror=error_callback)
+
+Scan for duplicates and apply a custom action (printing), instead purging:
+
+    import duplicate
+
+    def purge_callback(filename):
+        print(filename)
+        raise duplicate.SkipException
+
+    duplicate.purge('/path/to/dir', ondel=purge_callback)
+
+Scan for duplicates, apply a custom action (printing) and move them to
+the trash/recycle bin:
+
+    import duplicate
+
+    def purge_callback(filename):
+        print(filename)
+
+    duplicate.purge('/path/to/dir', ondel=purge_callback)
+
+Scan for duplicates, handling errors with a custom action (printing), and
+apply a custom action (moving to path), instead purging:
+
+    import shutil
+    import duplicate
+
+    def error_callback(exc, filename):
+        print(filename)
+
+    def purge_callback(filename):
+        shutil.move(filename, '/path/to/custom-dir')
+        raise duplicate.SkipException
+
+    duplicate.purge('/path/to/dir',
+                    ondel=purge_callback, onerror=error_callback)
+
 
 API Reference
 -------------
 
-### Properties
+### Exceptions
 
-- duplicate.**DEFAULT_MINSIZE**
-  - **Description**: Default minimum file size in Bytes.
-  - **Value**: `102400`
+- duplicate.`SkipException`(*args, **kwargs)
+  - **Description**: Raised to skip file scanning, filtering or purging.
+  - **Return**: Self instance.
+  - **Parameters**: Same as built-in `Exception`.
+  - **Proprieties**: Same as built-in `Exception`.
+  - **Methods**: Same as built-in `Exception`.
 
-- duplicate.**MAX_BLKSIZES_LEN**
-  - **Description**: Default maximum number of cached block sizes.
-  - **Value**: `128`
+### Classes
 
-### Methods
-
-- duplicate.**clear_blkcache**()
-  - **Description**: Clear the internal blksizes cache.
-  - **Return**: None.
-  - **Parameters**: None.
-
-- duplicate.**find**(`paths, minsize=None, include=None, exclude=None,
-    comparename=False, comparemtime=False, compareperms=False, recursive=True,
-    followlinks=False, scanlinks=False, scanempties=False, scansystems=True,
-    scanarchived=True, scanhidden=True, signsize=None, onerror=None`)
-  - **Description**: Find duplicate files.
-  - **Return**: Nested lists of paths of duplicate files.
+- duplicate.`Cache`(maxlen=`DEFAULT_MAXLEN`)
+  - **Description**: Internal shared cache class.
+  - **Return**: Self instance.
   - **Parameters**:
-    - `paths` – Iterable of directory and file paths.
-    - `minsize` – _(optional)_ Minimum size of files to include in scanning
-      (default to `DEFAULT_MINSIZE`).
-    - `include` – _(optional)_ Wildcard pattern of files to include in scanning.
+    - `maxlen` – Maximum number of entries stored.
+  - **Proprieties**:
+    - `DEFAULT_MAXLEN`:
+      - **Description**: Default maximum number of entries stored.
+      - **Value**: `128`.
+  - **Methods**:
+    - ...
+    - `clear`(self):
+      - **Description**: Clear the cache if not acquired by any object.
+      - **Return**: `True` if went cleared, otherwise `False`.
+      - **Parameters**: None.
+
+- duplicate.`Deplicate`(paths,
+  minsize=`DEFAULT_MINSIZE`,
+  maxsize=`DEFAULT_MAXSIZE`,
+  include=`None`, exclude=`None`,
+  comparename=`False`, comparemtime=`False`, comparemode=`False`,
+  recursive=`True`, followlinks=`False`, scanlinks=`False`,
+  scanempties=`False`,
+  scansystem=`True`, scanarchived=`True`, scanhidden=`True`)
+  - **Description**: Duplicate main class.
+  - **Return**: Self instance.
+  - **Parameters**:
+    - `paths` – Iterable of directory and/or file paths.
+    - `minsize` – _(optional)_ Minimum size in bytes of files to include
+      in scanning.
+    - `maxsize` – _(optional)_ Maximum size in bytes of files to include
+      in scanning.
+    - `include` – _(optional)_ Wildcard pattern of files to include
+      in scanning.
     - `exclude` – _(optional)_ Wildcard pattern of files to exclude
       from scanning.
     - `comparename` – _(optional)_ Check file name.
@@ -236,14 +326,140 @@ API Reference
     - `compareperms` – _(optional)_ Check file mode (permissions).
     - `recursive` – _(optional)_ Scan directory recursively.
     - `followlinks` – _(optional)_ Follow symbolic links pointing to directory.
-    - `scanlinks` – _(optional)_ Scan symbolic links pointing to file.
+    - `scanlinks` – _(optional)_ Scan symbolic links pointing to file
+      (including hard-links).
+    - `scanempties` – _(optional)_ Scan empty files.
+    - `scansystems` – _(optional)_ Scan OS files.
+    - `scanarchived` – _(optional)_ Scan archived files.
+    - `scanhidden` – _(optional)_ Scan hidden files.
+  - **Proprieties**:
+    - `DEFAULT_MINSIZE`:
+      - **Description**: Minimum size of files to include in scanning
+        (in bytes).
+      - **Value**: `102400`.
+    - `DEFAULT_MAXSIZE`:
+      - **Description**: Maximum size of files to include in scanning
+        (in bytes).
+      - **Value**: `107374182400`.
+    - `result`:
+        - **Description**: Result of `find` or `purge` invocation
+          (by default is `None`).
+        - **Value**: `duplicate.ResultInfo`.
+  - **Methods**:
+    - `find`(self, onerror=`None`, notify=`None`):
+      - **Description**: Find duplicate files.
+      - **Return**: None.
+      - **Parameters**:
+        - `onerror` – _(optional)_ Callback function called with two arguments,
+          `exception` and `filename`, when an error occurs during file
+          scanning or filtering.
+        - `notify` – _(internal)_ Notifier callback.
+    - `purge`(self, trash=`True`, ondel=`None`, onerror=`None`,
+      notify=`None`):
+      - **Description**: Find and purge duplicate files.
+      - **Return**: None.
+      - **Parameters**:
+        - `trash` – _(optional)_ Move duplicate files to trash/recycle bin,
+          instead deleting.
+        - `ondel` – _(optional)_ Callback function called with one arguments,
+          `filename`, before purging a duplicate file.
+        - `onerror` – _(optional)_ Callback function called with two arguments,
+          `exception` and `filename`, when an error occurs during file
+          scanning, filtering or purging.
+        - `notify` – _(internal)_ Notifier callback.
+
+- duplicate.`ResultInfo`(dupinfo, delduplist, scnerrlist, delerrors)
+  - **Description**: Duplicate result class.
+  - **Return**: `collections.namedtuple`('ResultInfo',
+    'dups deldups duperrors scanerrors delerrors').
+  - **Parameters**:
+    - `dupinfo` – _(internal)_ Instance of `duplicate.structs.DupInfo`.
+    - `delduplist` – _(internal)_ Iterable of purged files
+      (deleted or trashed).
+    - `scnerrlist` – _(internal)_ Iterable of files not scanned (due errors).
+    - `delerrors` – _(internal)_ Iterable of files not purged (due errors).
+  - **Proprieties**: Same as `collections.namedtuple`.
+  - **Methods**: Same as `collections.namedtuple`.
+
+### Functions
+
+- duplicate.`find`(*paths,
+  minsize=`duplicate.Deplicate.DEFAULT_MINSIZE`,
+  maxsize=`duplicate.Deplicate.DEFAULT_MAXSIZE`,
+  include=`None`, exclude=`None`,
+  comparename=`False`, comparemtime=`False`, comparemode=`False`,
+  recursive=`True`, followlinks=`False`, scanlinks=`False`,
+  scanempties=`False`,
+  scansystem=`True`, scanarchived=`True`, scanhidden=`True`,
+  onerror=`None`, notify=`None`)
+  - **Description**: Find duplicate files.
+  - **Return**: `duplicate.ResultInfo`.
+  - **Parameters**:
+    - `paths` – Iterable of directory and/or file paths.
+    - `minsize` – _(optional)_ Minimum size in bytes of files to include
+      in scanning.
+    - `maxsize` – _(optional)_ Maximum size in bytes of files to include
+      in scanning.
+    - `include` – _(optional)_ Wildcard pattern of files to include
+      in scanning.
+    - `exclude` – _(optional)_ Wildcard pattern of files to exclude
+      from scanning.
+    - `comparename` – _(optional)_ Check file name.
+    - `comparemtime` – _(optional)_ Check file modification time.
+    - `compareperms` – _(optional)_ Check file mode (permissions).
+    - `recursive` – _(optional)_ Scan directory recursively.
+    - `followlinks` – _(optional)_ Follow symbolic links pointing to directory.
+    - `scanlinks` – _(optional)_ Scan symbolic links pointing to file
+      (including hard-links).
     - `scanempties` – _(optional)_ Scan empty files.
     - `scansystems` – _(optional)_ Scan OS files.
     - `scanarchived` – _(optional)_ Scan archived files.
     - `scanhidden` – _(optional)_ Scan hidden files.
     - `onerror` – _(optional)_ Callback function called with two arguments,
       `exception` and `filename`, when an error occurs during file scanning or
-      processing.
+      filtering.
+    - `notify` – _(internal)_ _(optional)_ Notifier callback.
+
+- duplicate.`purge`(*paths,
+  minsize=`duplicate.Deplicate.DEFAULT_MINSIZE`,
+  maxsize=`duplicate.Deplicate.DEFAULT_MAXSIZE`,
+  include=`None`, exclude=`None`,
+  comparename=`False`, comparemtime=`False`, comparemode=`False`,
+  recursive=`True`, followlinks=`False`, scanlinks=`False`,
+  scanempties=`False`,
+  scansystem=`True`, scanarchived=`True`, scanhidden=`True`,
+  trash=`True`, ondel=`None`, onerror=`None`, notify=`None`)
+  - **Description**: Find and purge duplicate files.
+  - **Return**: `duplicate.ResultInfo`.
+  - **Parameters**:
+    - `paths` – Iterable of directory and/or file paths.
+    - `minsize` – _(optional)_ Minimum size in bytes of files to include
+      in scanning.
+    - `maxsize` – _(optional)_ Maximum size in bytes of files to include
+      in scanning.
+    - `include` – _(optional)_ Wildcard pattern of files to include
+      in scanning.
+    - `exclude` – _(optional)_ Wildcard pattern of files to exclude
+      from scanning.
+    - `comparename` – _(optional)_ Check file name.
+    - `comparemtime` – _(optional)_ Check file modification time.
+    - `compareperms` – _(optional)_ Check file mode (permissions).
+    - `recursive` – _(optional)_ Scan directory recursively.
+    - `followlinks` – _(optional)_ Follow symbolic links pointing to directory.
+    - `scanlinks` – _(optional)_ Scan symbolic links pointing to file
+      (including hard-links).
+    - `scanempties` – _(optional)_ Scan empty files.
+    - `scansystems` – _(optional)_ Scan OS files.
+    - `scanarchived` – _(optional)_ Scan archived files.
+    - `scanhidden` – _(optional)_ Scan hidden files.
+    - `trash` – _(optional)_ Move duplicate files to trash/recycle bin,
+      instead deleting.
+    - `ondel` – _(optional)_ Callback function called with one arguments,
+      `filename`, before purging a duplicate file.
+    - `onerror` – _(optional)_ Callback function called with two arguments,
+      `exception` and `filename`, when an error occurs during file scanning,
+      filtering or purging.
+    - `notify` – _(internal)_ _(optional)_ Notifier callback.
 
 
 ------------------------------------------------
