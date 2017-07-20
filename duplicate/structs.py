@@ -105,16 +105,16 @@ class DupInfo(_DupInfo):
         super(DupInfo, self).__init__(*args, **kwargs)
         self._filter()
 
-    def _filter(self, key=None):
+    def _filter(self, delkey=None):
         dupdict = self.dups
 
-        if key is None:
+        if delkey is None:
             for key, value in dupdict.items():
                 if len(value) > 1:
                     continue
                 dupdict.pop(key)
         else:
-            dupdict.pop(key, None)
+            dupdict.pop(delkey, None)
 
         if not dupdict and not self.errors and self.parent:
             parentobj, parentkey = self.parent
@@ -187,7 +187,7 @@ class ResultInfo(_ResultInfo):
         dups_it = ResultInfo.__iter_dups(dupinfo)
 
         dups = [tuple(sorted(duplist, key=sort_fn))
-                for dupobj, dupkey, duplist in dups_it if duplist]
+                for _, _, duplist in dups_it if duplist]
 
         dups.sort(key=len, reverse=True)
         return tuple(dups)

@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-from .core import cache, filterdups, purgedups, scandups
+from .core import CACHE, filterdups, purgedups, scandups
 from .structs import FilterType, ResultInfo
 from .utils import compilecards
 
@@ -90,7 +90,7 @@ class Deplicate(object):
                 notify('filtering files by content', value)
 
         try:
-            cache.acquire()
+            CACHE.acquire()
 
             filterdups(FilterType.SIGNATURE, self._dupinfo, onerror,
                        progress_s)
@@ -99,7 +99,7 @@ class Deplicate(object):
             filterdups(FilterType.BINARY, self._dupinfo, onerror, progress_c)
 
         finally:
-            cache.release()
+            CACHE.release()
 
     def _scan(self, onerror, notify):
 

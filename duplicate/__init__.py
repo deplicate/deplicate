@@ -10,7 +10,7 @@
 
 from __future__ import absolute_import
 
-from .core import cache
+from .core import CACHE
 from .deplicate import Deplicate
 from .structs import Cache, ResultInfo, SkipException
 from .utils import from_iterable

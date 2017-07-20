@@ -72,7 +72,7 @@ def splitpaths(iterable, followlinks=False):
 
         else:
             if S_ISDIR(mode):
-                if not followlinks and symlink:
+                if symlink and not followlinks:
                     continue
                 dirs.append(path)
 
@@ -252,8 +252,8 @@ def signature(filename):
     return _xxhash_xxh(data).hexdigest()
 
 
-def _chunksum(fd, read, size, buffer, whence):
-    buf0, buf1 = buffer
+def _chunksum(fd, read, size, bufsizes, whence):
+    buf0, buf1 = bufsizes
     offset, how = whence
 
     x = _xxhash_xxh()
@@ -278,18 +278,18 @@ def _chunksum(fd, read, size, buffer, whence):
 
 def sidesum(filename, chksize, bufsize, offset=0):
     if bufsize < chksize:
-        buffer = (bufsize, chksize % bufsize)
+        bufsizes = (bufsize, chksize % bufsize)
     else:
-        buffer = (chksize, 0)
+        bufsizes = (chksize, 0)
 
     offset = abs(offset)
 
     with readopen(filename, sequential=False, direct=True) as (read, fd):
         whence = (offset, os.SEEK_SET)
-        header = _chunksum(fd, read, chksize, buffer, whence)
+        header = _chunksum(fd, read, chksize, bufsizes, whence)
 
         whence = (-chksize - offset, os.SEEK_END)
-        footer = _chunksum(fd, read, chksize, buffer, whence)
+        footer = _chunksum(fd, read, chksize, bufsizes, whence)
 
     return header, footer
 
