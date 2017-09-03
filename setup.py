@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+
+import io
+
 from setuptools import setup
 
 setup(
@@ -7,7 +11,8 @@ setup(
     version=open('VERSION').read().strip(),
     description='Advanced Duplicate File Finder for Python. '
                 'Nothing is impossible to solve.',
-    long_description=open('README.rst').read(),
+    long_description=io.open(
+        'README.rst', encoding='utf-8', errors='ignore').read(),
     keywords='duplicate duplicatefinder duplicates dups',
     url='https://github.com/vuolter/deplicate',
     download_url='https://github.com/vuolter/deplicate/releases',
@@ -15,7 +20,7 @@ setup(
     author_email='vuolter@gmail.com',
     license='MIT',
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'Intended Audience :: End Users/Desktop',
         'License :: OSI Approved :: MIT License',
