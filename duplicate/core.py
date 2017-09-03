@@ -154,7 +154,7 @@ def _binaryfilter(fltrtype, dupinfo, onerror, progress):
 
     for dupobj, dupkey, filelist in dups_it:
         try:
-            file0, file1 = filelist
+            file0, _ = filelist
         except ValueError:
             continue
 
