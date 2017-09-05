@@ -26,9 +26,11 @@ Table of contents
 - [Description](#description)
 - [Features](#features)
 - [Installation](#installation)
+  - [PIP Install](#pip-install)
+  - [Tarball Install](#tarball-install)
 - [Usage](#usage)
-  - [Quick Examples](#quick-examples)
-  - [Advanced Examples](#advanced-examples)
+  - [Quick Start](#quick-start)
+  - [Advanced Usage](#advanced-usage)
 - [API Reference](#api-reference)
   - [Exceptions](#exceptions)
   - [Classes](#classes)
@@ -76,7 +78,7 @@ Features
 - [x] **Command Line Interface** (https://github.com/deplicate/deplicate-cli)
 - [x] Unified structured result
 - [x] Support posix_fadvise
-- [ ] Graphical User Interface
+- [ ] Graphical User Interface (https://github.com/deplicate/deplicate-gui)
 - [ ] Incremental file chunk checking
 - [ ] Hard-link scanning
 - [ ] Duplicate directories recognition
@@ -89,53 +91,65 @@ Features
 Installation
 ------------
 
-Type in your command shell **with _administrator/root_ privileges**:
+> **Note:**
+> This will install just **_deplicate_**, without its CLI and GUI.
+> - CLI _(Command Line Interface)_: https://github.com/deplicate/deplicate-cli.
+> - GUI _(Graphical User Interface)_: https://github.com/deplicate/deplicate-gui.
+
+The easiest way to install **_deplicate_** on your system is the
+[PIP Install way](#pip-install),
+but, if you want, you can try to install it from the sources as described in
+the [Tarball Install section](#tarball-install).
+
+### PIP Install
+
+If the command `pip` is not found in your system,
+install the latest `pip` distribution:
+download [get-pip.py](https://bootstrap.pypa.io/get-pip.py)
+and run it using the [Python Interpreter](https://www.python.org).
+
+Then, type in your command shell **with _administrator/root_ privileges**:
 
     pip install deplicate
 
-In Unix-based systems, this is generally achieved by superseding
-the command `sudo`.
+> **Note:**
+> In Unix-based systems, you may have to type `sudo pip install deplicate`.
 
-    sudo pip install deplicate
-
-If the above commands fail, consider installing it with the option
+If the above command fails, consider installing with the option
 [`--user`](https://pip.pypa.io/en/latest/user_guide/#user-installs):
 
     pip install --user deplicate
 
-> **Note:**
-> You can install it with its _Command Line Interface_, typing
-> `pip install deplicate[cli]`
+### Tarball Install
 
-If the command `pip` is not found in your system, but you have the
-[Python Interpreter](https://www.python.org) and the package `setuptools`
-(>=20.8.1) installed, you can try to install it from the sources, in this way:
-
+0. Make sure you have installed
+the [Python Interpreter](https://www.python.org)
+with the package `setuptools` **(>=20.8.1)**.
 1. Get the latest tarball of the source code in format
 [ZIP](https://github.com/deplicate/deplicate/archive/master.zip) or
 [TAR](https://github.com/deplicate/deplicate/archive/master.tar.gz).
 2. Extract the downloaded archive.
-3. From the extracted path, launch the command
+3. From the extracted path, execute the command
 `python setup.py install`.
 
 
 Usage
 -----
 
-Import in your script the module `duplicate`.
+In your script import the module `duplicate`.
 
     import duplicate
 
-Call its function `find` if you want to know what are the duplicate files:
+Call its function `find` to search the duplicate files in the given path:
 
     duplicate.find('/path')
 
-Or `purge` if you want in addition to remove them:
+Or call the function `purge` if you want to remove them in addition:
 
     duplicate.purge('/path')
 
-In both cases, you'll get a `duplicate.ResultInfo` object,
-with following properties:
+You'll get a `duplicate.ResultInfo` object as result,
+with the following properties:
 - `dups` – Tuples of paths of duplicate files.
 - `deldups` – Tuple of paths of purged duplicate files.
 - `duperrors` – Tuple of paths of files not filtered due errors.
@@ -143,10 +157,10 @@ with following properties:
 - `delerrors` – Tuple of paths of files not purged due errors.
 
 > **Note:**
-> By default directory paths are scanned recursively.
+> By default, directory paths are scanned recursively.
 
 > **Note:**
-> By default files smaller than **100 KiB** or bigger than **100 GiB**
+> By default, files smaller than **100 KiB** or bigger than **100 GiB**
 > are not scanned.
 
 > **Note:**
@@ -156,7 +170,7 @@ with following properties:
 > Tuples of duplicate files are sorted in descending order according
 input priority, file modification time and name length.
 
-### Quick Examples
+### Quick Start
 
 Scan for duplicates a single directory:
 
@@ -202,7 +216,7 @@ Scan ignoring the minimum file size threshold:
 
     duplicate.find('/path/to/dir', minsize=0)
 
-### Advanced Examples
+### Advanced Usage
 
 Scan without recursing directories:
 
