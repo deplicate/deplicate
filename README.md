@@ -1,5 +1,22 @@
-<p align="center"><a href="#"><img src="banner.png" alt="deplicate" /></a></p>
-<p align="center"><b>Advanced Duplicate File Finder for Python.</b> <i>Nothing is impossible to solve.</i></p>
+<div align="center">
+  <a href="#">
+    <img src="media/banner.png?raw=true" alt="deplicate" />
+  </a>
+  <h2>Advanced Duplicate File Finder for Python</h2>
+  <a href="https://pypi.python.org/pypi/deplicate">
+    <img src="https://img.shields.io/pypi/status/deplicate.svg" alt="PyPI Status" />
+  </a>
+  <a href="https://pypi.python.org/pypi/deplicate">
+    <img src="https://img.shields.io/pypi/v/deplicate.svg" alt="PyPI Version" />
+  </a>
+  <a href="https://pypi.python.org/pypi/deplicate">
+    <img src="https://img.shields.io/pypi/pyversions/deplicate.svg" alt="PyPI Python Versions" />
+  </a>
+  <a href="https://pypi.python.org/pypi/deplicate">
+    <img src="https://img.shields.io/pypi/l/deplicate.svg" alt="PyPI License" />
+  </a>
+  <h5><i>Nothing is impossible to solve.</i><h5>
+</div>
 
 
 Table of contents
@@ -13,58 +30,50 @@ Table of contents
   - [Quick Examples](#quick-examples)
   - [Advanced Examples](#advanced-examples)
 - [API Reference](#api-reference)
-  - [Properties](#properties)
-  - [Methods](#methods)
+  - [Exceptions](#exceptions)
+  - [Classes](#classes)
+  - [Functions](#functions)
 
 
 Status
 ------
 
-[![Travis Build Status](https://travis-ci.org/vuolter/deplicate.svg?branch=master)](https://travis-ci.org/vuolter/deplicate)
-[![Requirements Status](https://requires.io/github/vuolter/deplicate/requirements.svg?branch=master)](https://requires.io/github/vuolter/deplicate/requirements/?branch=master)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/bc7b97415617404694a07f2529147f7e)](https://www.codacy.com/app/deplicate/deplicate?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=vuolter/deplicate&amp;utm_campaign=Badge_Grade)
-[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/vuolter/deplicate/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/vuolter/deplicate/?branch=master)
-
-[![PyPI Status](https://img.shields.io/pypi/status/deplicate.svg)](https://pypi.python.org/pypi/deplicate)
-[![PyPI Version](https://img.shields.io/pypi/v/deplicate.svg)](https://pypi.python.org/pypi/deplicate)
-[![PyPI Python Versions](https://img.shields.io/pypi/pyversions/deplicate.svg)](https://pypi.python.org/pypi/deplicate)
-[![PyPI License](https://img.shields.io/pypi/l/deplicate.svg)](https://pypi.python.org/pypi/deplicate)
+[![Travis Build Status](https://travis-ci.org/deplicate/deplicate.svg?branch=master)](https://travis-ci.org/deplicate/deplicate)
+[![Requirements Status](https://requires.io/github/deplicate/deplicate/requirements.svg?branch=master)](https://requires.io/github/deplicate/deplicate/requirements/?branch=master)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/bc7b97415617404694a07f2529147f7e)](https://www.codacy.com/app/deplicate/deplicate?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=deplicate/deplicate&amp;utm_campaign=Badge_Grade)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/deplicate/deplicate/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/deplicate/deplicate/?branch=master)
 
 
 Description
 -----------
 
-**deplicate** is an high-performance multi-filter duplicate file finder
-written in Pure Python with low memory impact and several advanced features.
+**_deplicate_** is an high-performance duplicate file finder
+written in Pure Python with low memory impact and several advanced filters.
 
-Use **deplicate** to find out all the duplicated files in one or more
-directories, you can also scan a bunch of files directly.
-Latest releases let you to delete the founded duplicates or apply a custom
-action on them when purging.
-
-_From what we know, it's the most complete and fastest duplicate finder tool
-for Python, nowadays._
+Find out all the duplicate files in one or more directories,
+you can also scan directly a bunch of files.
+Latest releases let you to remove the spotted duplicates and/or apply a custom
+action over them.
 
 
 Features
 --------
 
-- [x] Optimized for speed
 - [x] N-tree layout for low memory consumption
 - [x] Multi-threaded (partially)
-- [x] Raw drive data access to maximize I/O performances (Unix only)
+- [x] Raw drive access to maximize I/O performance (Unix only)
 - [x] xxHash algorithm for fast file identification
 - [x] File size and signature checking for quick duplicate exclusion
 - [x] Extended file attributes scanning
 - [x] Multi-filtering
 - [x] Full error handling
 - [x] Unicode decoding
-- [x] Safe from directory recursion loop
+- [x] Safe from directory walking loop
 - [ ] SSD detection
 - [x] Dulicates purging
 - [x] Support for moving dulicates to trash/recycle bin
-- [x] Custom aation handling over deletion
-- [x] Command Line Interface (https://github.com/vuolter/deplicate-cli)
+- [x] Custom action handling over deletion
+- [x] **Command Line Interface** (https://github.com/deplicate/deplicate-cli)
 - [x] Unified structured result
 - [x] Support posix_fadvise
 - [ ] Graphical User Interface
@@ -72,7 +81,7 @@ Features
 - [ ] Hard-link scanning
 - [ ] Duplicate directories recognition
 - [ ] Multi-processing
-- [ ] Fully documented
+- [x] Fully documented
 - [ ] PyPy support
 - [ ] ~~Exif data scanning~~
 
@@ -95,16 +104,16 @@ If the above commands fail, consider installing it with the option
     pip install --user deplicate
 
 > **Note:**
-> You can install **deplicate** with its _Command Line Interface_ typing
+> You can install it with its _Command Line Interface_, typing
 > `pip install deplicate[cli]`
 
-If in your system missing the command `pip`, but you're sure you have installed
-the [Python Interpreter](https://www.python.org) and the package `setuptools`
-(>=20.8.1), you can try to install **deplicate** from the sources, in this way:
+If the command `pip` is not found in your system, but you have the
+[Python Interpreter](https://www.python.org) and the package `setuptools`
+(>=20.8.1) installed, you can try to install it from the sources, in this way:
 
 1. Get the latest tarball of the source code in format
-[ZIP](https://github.com/vuolter/deplicate/archive/master.zip) or
-[TAR](https://github.com/vuolter/deplicate/archive/master.tar.gz).
+[ZIP](https://github.com/deplicate/deplicate/archive/master.zip) or
+[TAR](https://github.com/deplicate/deplicate/archive/master.tar.gz).
 2. Extract the downloaded archive.
 3. From the extracted path, launch the command
 `python setup.py install`.
@@ -137,7 +146,7 @@ with following properties:
 > By default directory paths are scanned recursively.
 
 > **Note:**
-> By default files smaller than **100 MiB** or bigger than **100 GiB**
+> By default files smaller than **100 KiB** or bigger than **100 GiB**
 > are not scanned.
 
 > **Note:**
@@ -213,7 +222,7 @@ Scan checking file names and hidden files:
     duplicate.find.from_iterable('/path/to/file1', '/path/to/dir1',
                                  comparename=True, scanhidden=True)
 
-Scan excluding files with extension `.doc`:
+Scan excluding files ending with extension `.doc`:
 
     import duplicate
 
@@ -235,7 +244,7 @@ Scan for duplicates, handling errors with a custom action (printing):
 
     duplicate.find('/path/to/dir', onerror=error_callback)
 
-Scan for duplicates and apply a custom action (printing), instead purging:
+Scan for duplicates and apply a custom action (printing), instead of purging:
 
     import duplicate
 
@@ -256,7 +265,7 @@ the trash/recycle bin:
     duplicate.purge('/path/to/dir', ondel=purge_callback)
 
 Scan for duplicates, handling errors with a custom action (printing), and
-apply a custom action (moving to path), instead purging:
+apply a custom action (moving to path), instead of purging:
 
     import shutil
     import duplicate
@@ -277,7 +286,7 @@ API Reference
 
 ### Exceptions
 
-- duplicate.`SkipException`(*args, **kwargs)
+- duplicate.`SkipException`(_*args_, _**kwargs_)
   - **Description**: Raised to skip file scanning, filtering or purging.
   - **Return**: Self instance.
   - **Parameters**: Same as built-in `Exception`.
@@ -286,30 +295,30 @@ API Reference
 
 ### Classes
 
-- duplicate.`Cache`(maxlen=`DEFAULT_MAXLEN`)
+- duplicate.`Cache`(_maxlen_=`DEFAULT_MAXLEN`)
   - **Description**: Internal shared cache class.
   - **Return**: Self instance.
   - **Parameters**:
     - `maxlen` – Maximum number of entries stored.
   - **Proprieties**:
-    - `DEFAULT_MAXLEN`:
+    - `DEFAULT_MAXLEN`
       - **Description**: Default maximum number of entries stored.
       - **Value**: `128`.
   - **Methods**:
     - ...
-    - `clear`(self):
+    - `clear`(_self_)
       - **Description**: Clear the cache if not acquired by any object.
       - **Return**: `True` if went cleared, otherwise `False`.
       - **Parameters**: None.
 
-- duplicate.`Deplicate`(paths,
-    minsize=`DEFAULT_MINSIZE`,
-    maxsize=`DEFAULT_MAXSIZE`,
-    include=`None`, exclude=`None`,
-    comparename=`False`, comparemtime=`False`, comparemode=`False`,
-    recursive=`True`, followlinks=`False`, scanlinks=`False`,
-    scanempties=`False`,
-    scansystem=`True`, scanarchived=`True`, scanhidden=`True`)
+- duplicate.`Deplicate`(_paths_,
+    _minsize_=`DEFAULT_MINSIZE`,
+    _maxsize_=`DEFAULT_MAXSIZE`,
+    _include_=`None`, _exclude_=`None`,
+    _comparename_=`False`, _comparemtime_=`False`, _comparemode_=`False`,
+    _recursive_=`True`, _followlinks_=`False`, _scanlinks_=`False`,
+    _scanempties_=`False`,
+    _scansystem_=`True`, _scanarchived_=`True`, _scanhidden_=`True`)
   - **Description**: Duplicate main class.
   - **Return**: Self instance.
   - **Parameters**:
@@ -328,26 +337,26 @@ API Reference
     - `recursive` – _(optional)_ Scan directory recursively.
     - `followlinks` – _(optional)_ Follow symbolic links pointing to directory.
     - `scanlinks` – _(optional)_ Scan symbolic links pointing to file
-      (including hard-links).
+      (hard-links included).
     - `scanempties` – _(optional)_ Scan empty files.
     - `scansystems` – _(optional)_ Scan OS files.
     - `scanarchived` – _(optional)_ Scan archived files.
     - `scanhidden` – _(optional)_ Scan hidden files.
   - **Proprieties**:
-    - `DEFAULT_MINSIZE`:
+    - `DEFAULT_MINSIZE`
       - **Description**: Minimum size of files to include in scanning
         (in bytes).
       - **Value**: `102400`.
-    - `DEFAULT_MAXSIZE`:
+    - `DEFAULT_MAXSIZE`
       - **Description**: Maximum size of files to include in scanning
         (in bytes).
       - **Value**: `107374182400`.
-    - `result`:
+    - `result`
         - **Description**: Result of `find` or `purge` invocation
           (by default is `None`).
         - **Value**: `duplicate.ResultInfo`.
   - **Methods**:
-    - `find`(self, onerror=`None`, notify=`None`):
+    - `find`(_self_, _onerror_=`None`, _notify_=`None`)
       - **Description**: Find duplicate files.
       - **Return**: None.
       - **Parameters**:
@@ -355,12 +364,13 @@ API Reference
           `exception` and `filename`, when an error occurs during file
           scanning or filtering.
         - `notify` – _(internal)_ Notifier callback.
-    - `purge`(self, trash=`True`, ondel=`None`, onerror=`None`, notify=`None`):
+    - `purge`(_self_,
+        _trash_=`True`, _ondel_=`None`, _onerror_=`None`, _notify_=`None`)
       - **Description**: Find and purge duplicate files.
       - **Return**: None.
       - **Parameters**:
         - `trash` – _(optional)_ Move duplicate files to trash/recycle bin,
-          instead deleting.
+          instead of deleting.
         - `ondel` – _(optional)_ Callback function called with one arguments,
           `filename`, before purging a duplicate file.
         - `onerror` – _(optional)_ Callback function called with two arguments,
@@ -368,10 +378,10 @@ API Reference
           scanning, filtering or purging.
         - `notify` – _(internal)_ Notifier callback.
 
-- duplicate.`ResultInfo`(dupinfo, delduplist, scnerrlist, delerrors)
+- duplicate.`ResultInfo`(_dupinfo_, _delduplist_, _scnerrlist_, _delerrors_)
   - **Description**: Duplicate result class.
-  - **Return**: `collections.namedtuple`('ResultInfo',
-    'dups deldups duperrors scanerrors delerrors').
+  - **Return**: `collections.namedtuple`(`'ResultInfo'`,
+    `'dups deldups duperrors scanerrors delerrors'`).
   - **Parameters**:
     - `dupinfo` – _(internal)_ Instance of `duplicate.structs.DupInfo`.
     - `delduplist` – _(internal)_ Iterable of purged files
@@ -383,15 +393,15 @@ API Reference
 
 ### Functions
 
-- duplicate.`find`(*paths,
-    minsize=`duplicate.Deplicate.DEFAULT_MINSIZE`,
-    maxsize=`duplicate.Deplicate.DEFAULT_MAXSIZE`,
-    include=`None`, exclude=`None`,
-    comparename=`False`, comparemtime=`False`, comparemode=`False`,
-    recursive=`True`, followlinks=`False`, scanlinks=`False`,
-    scanempties=`False`,
-    scansystem=`True`, scanarchived=`True`, scanhidden=`True`,
-    onerror=`None`, notify=`None`)
+- duplicate.`find`(_*paths_,
+    _minsize_=`duplicate.Deplicate.DEFAULT_MINSIZE`,
+    _maxsize_=`duplicate.Deplicate.DEFAULT_MAXSIZE`,
+    _include_=`None`, _exclude_=`None`,
+    _comparename_=`False`, _comparemtime_=`False`, _comparemode_=`False`,
+    _recursive_=`True`, _followlinks_=`False`, _scanlinks_=`False`,
+    _scanempties_=`False`,
+    _scansystem_=`True`, _scanarchived_=`True`, _scanhidden_=`True`,
+    _onerror_=`None`, _notify_=`None`)
   - **Description**: Find duplicate files.
   - **Return**: `duplicate.ResultInfo`.
   - **Parameters**:
@@ -410,7 +420,7 @@ API Reference
     - `recursive` – _(optional)_ Scan directory recursively.
     - `followlinks` – _(optional)_ Follow symbolic links pointing to directory.
     - `scanlinks` – _(optional)_ Scan symbolic links pointing to file
-      (including hard-links).
+      (hard-links included).
     - `scanempties` – _(optional)_ Scan empty files.
     - `scansystems` – _(optional)_ Scan OS files.
     - `scanarchived` – _(optional)_ Scan archived files.
@@ -420,15 +430,15 @@ API Reference
       filtering.
     - `notify` – _(internal)_ _(optional)_ Notifier callback.
 
-- duplicate.`purge`(*paths,
-    minsize=`duplicate.Deplicate.DEFAULT_MINSIZE`,
-    maxsize=`duplicate.Deplicate.DEFAULT_MAXSIZE`,
-    include=`None`, exclude=`None`,
-    comparename=`False`, comparemtime=`False`, comparemode=`False`,
-    recursive=`True`, followlinks=`False`, scanlinks=`False`,
-    scanempties=`False`,
-    scansystem=`True`, scanarchived=`True`, scanhidden=`True`,
-    trash=`True`, ondel=`None`, onerror=`None`, notify=`None`)
+- duplicate.`purge`(_*paths_,
+    _minsize_=`duplicate.Deplicate.DEFAULT_MINSIZE`,
+    _maxsize_=`duplicate.Deplicate.DEFAULT_MAXSIZE`,
+    _include_=`None`, _exclude_=`None`,
+    _comparename_=`False`, _comparemtime_=`False`, _comparemode_=`False`,
+    _recursive_=`True`, _followlinks_=`False`, _scanlinks_=`False`,
+    _scanempties_=`False`,
+    _scansystem_=`True`, _scanarchived_=`True`, _scanhidden_=`True`,
+    _trash_=`True`, _ondel_=`None`, _onerror_=`None`, _notify_=`None`)
   - **Description**: Find and purge duplicate files.
   - **Return**: `duplicate.ResultInfo`.
   - **Parameters**:
@@ -447,13 +457,13 @@ API Reference
     - `recursive` – _(optional)_ Scan directory recursively.
     - `followlinks` – _(optional)_ Follow symbolic links pointing to directory.
     - `scanlinks` – _(optional)_ Scan symbolic links pointing to file
-      (including hard-links).
+      (hard-links included).
     - `scanempties` – _(optional)_ Scan empty files.
     - `scansystems` – _(optional)_ Scan OS files.
     - `scanarchived` – _(optional)_ Scan archived files.
     - `scanhidden` – _(optional)_ Scan hidden files.
     - `trash` – _(optional)_ Move duplicate files to trash/recycle bin,
-      instead deleting.
+      instead of deleting.
     - `ondel` – _(optional)_ Callback function called with one arguments,
       `filename`, before purging a duplicate file.
     - `onerror` – _(optional)_ Callback function called with two arguments,
