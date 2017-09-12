@@ -72,5 +72,4 @@ deploy:
     on:
       python: 3.5
       tags: true
-      name: "${$TRAVIS_REPO_SLUG#*/} ${$TRAVIS_TAG#v}"
-      body: "## Changelog"
+      name: "${TRAVIS_REPO_SLUG#*/} ${TRAVIS_TAG#v}"
