@@ -41,6 +41,7 @@ Status
 ------
 
 [![Travis Build Status](https://travis-ci.org/deplicate/deplicate.svg?branch=master)](https://travis-ci.org/deplicate/deplicate)
+[![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/liiymqadlm0hjbbb/branch/master?svg=true)](https://ci.appveyor.com/project/vuolter/deplicate/branch/master)
 [![Requirements Status](https://requires.io/github/deplicate/deplicate/requirements.svg?branch=master)](https://requires.io/github/deplicate/deplicate/requirements/?branch=master)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/bc7b97415617404694a07f2529147f7e)](https://www.codacy.com/app/deplicate/deplicate?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=deplicate/deplicate&amp;utm_campaign=Badge_Grade)
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/deplicate/deplicate/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/deplicate/deplicate/?branch=master)
@@ -49,7 +50,7 @@ Status
 Description
 -----------
 
-**_deplicate_** is an high-performance duplicate file finder
+`deplicate` is an high-performance duplicate file finder
 written in Pure Python with low memory impact and several advanced filters.
 
 Find out all the duplicate files in one or more directories,
@@ -70,9 +71,9 @@ Features
 - [x] Multi-filtering
 - [x] Full error handling
 - [x] Unicode decoding
-- [x] Safe from directory walking loop
+- [x] Safe from path walking loop
 - [ ] SSD detection
-- [x] Dulicates purging
+- [x] Duplicates purging
 - [x] Support for moving dulicates to trash/recycle bin
 - [x] Custom action handling over deletion
 - [x] **Command Line Interface** (https://github.com/deplicate/deplicate-cli)
@@ -92,11 +93,11 @@ Installation
 ------------
 
 > **Note:**
-> This will install just **_deplicate_**, without its CLI and GUI.
+> This will install just `deplicate`, without its CLI and GUI.
 > - CLI _(Command Line Interface)_: https://github.com/deplicate/deplicate-cli.
 > - GUI _(Graphical User Interface)_: https://github.com/deplicate/deplicate-gui.
 
-The easiest way to install **_deplicate_** on your system is the
+The easiest way to install `deplicate` on your system is the
 [PIP Install way](#pip-install),
 but, if you want, you can try to install it from the sources as described in
 the [Tarball Install section](#tarball-install).

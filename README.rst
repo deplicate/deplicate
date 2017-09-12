@@ -20,7 +20,7 @@ Table of contents
 Description
 -----------
 
-**deplicate** is an high-performance duplicate file finder written in
+``deplicate`` is an high-performance duplicate file finder written in
 Pure Python with low memory impact and several advanced filters.
 
 Find out all the duplicate files in one or more directories, you can
@@ -39,9 +39,9 @@ Features
 -  [x] Multi-filtering
 -  [x] Full error handling
 -  [x] Unicode decoding
--  [x] Safe from directory walking loop
+-  [x] Safe from path walking loop
 -  [ ] SSD detection
--  [x] Dulicates purging
+-  [x] Duplicates purging
 -  [x] Support for moving dulicates to trash/recycle bin
 -  [x] Custom action handling over deletion
 -  [x] **Command Line Interface**
@@ -61,7 +61,7 @@ Features
 Installation
 ------------
 
-    **Note:** This will install just **deplicate**, without its CLI
+    **Note:** This will install just ``deplicate``, without its CLI
     and GUI.
 
     CLI *(Command Line Interface)*:
@@ -69,7 +69,7 @@ Installation
     GUI *(Graphical User Interface)*:
     https://github.com/deplicate/deplicate-gui.
 
-The easiest way to install ***deplicate*** on your system is the `PIP
+The easiest way to install ``deplicate`` on your system is the `PIP
 Install way`_, but, if you want, you can try to install it from the
 sources as described in the `Tarball Install section`_.
 
