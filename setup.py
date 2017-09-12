@@ -2,20 +2,20 @@
 
 from __future__ import absolute_import
 
-import io
+import codecs
 
 from setuptools import setup
 
 setup(
     name='deplicate',
-    version=open('VERSION').read().strip(),
+    version=codecs.open('VERSION').read().strip(),
     description='Advanced Duplicate File Finder for Python. '
                 'Nothing is impossible to solve.',
-    long_description=io.open(
+    long_description=codecs.open(
         'README.rst', encoding='utf-8', errors='ignore').read(),
     keywords='duplicate duplicatefinder duplicates dups',
-    url='https://github.com/vuolter/deplicate',
-    download_url='https://github.com/vuolter/deplicate/releases',
+    url='https://github.com/deplicate/deplicate',
+    download_url='https://github.com/deplicate/deplicate/releases',
     author='Walter Purcaro',
     author_email='vuolter@gmail.com',
     license='MIT',
@@ -56,6 +56,6 @@ setup(
         # 'ssd',
         'xxhash>=1'],
     setup_requires=['setuptools>=20.8.1'],
-    extras_require={'cli': ['deplicate-cli']},
+    extras_require={'cli': ['deplicate-cli'], 'full': ['deplicate-cli']},
     python_requires='>=2.6,!=3.0,!=3.1,!=3.2',
     zip_safe=True)
